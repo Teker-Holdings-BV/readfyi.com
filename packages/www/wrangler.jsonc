@@ -1,0 +1,14 @@
+// Deploys the static Next.js export (`output: 'export'` → ./out) as a
+// Worker with static assets. Build first: `npm run build` at the repo root.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "www-readfyi-com",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./out",
+    // /advertise serves advertise.html
+    "html_handling": "auto-trailing-slash",
+    // Unknown paths serve Next's 404.html with a 404 status
+    "not_found_handling": "404-page"
+  }
+}

@@ -38,3 +38,5 @@ coverage
 
 *.service-account.json
 .terraform
+# Wrangler local state
+.wrangler
