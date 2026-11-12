@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "build": "tsup --clean",
-    "dev": "tsup --watch --sourcemap",
+    "dev": "tsup --watch --sourcemap --no-clean",
     "clean": "rimraf dist",
     "prepublishOnly": "npm run build",
     "publish": "npm publish --registry=https://npm.pkg.github.com"

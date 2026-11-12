@@ -4,7 +4,7 @@ import {
   TrackingEventDto,
   TrackingIntegrationProps,
   TrackingPlatformEnum,
-} from '@readfyi/tracking';
+} from '@teker-holdings-bv/tracking';
 import { ConfigService } from '@nestjs/config';
 import { getBaseProps, IssueProps } from '@readfyi/shared';
 import { readFileSync } from 'fs';

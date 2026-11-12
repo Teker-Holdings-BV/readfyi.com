@@ -1,0 +1,745 @@
+import { NewsletterEnum } from '@readfyi/shared';
+
+/**
+ * Seed list of hand-picked content sources per newsletter.
+ *
+ * v1 curation is random, so quality comes from this list. Sample in two
+ * steps so high-volume feeds (news sites, PPC Land) don't crowd out
+ * individual authors:
+ *   1. pick sources at random, then a recent item from each
+ *   2. fetch the full article before summarizing (see `paywall`)
+ *
+ * Every feed below was checked on 2026-11-12: it returned a valid RSS/Atom
+ * feed with posts from 2026.
+ */
+
+export interface SourceConfig {
+  name: string;
+  /** Person or publication behind the source, for attribution. */
+  author?: string;
+  feedUrl: string;
+  homepageUrl: string;
+  /**
+   * 'none': full article is freely readable.
+   * 'partial': some posts are paywalled or the feed only carries a teaser;
+   * skip the item or use it as a quick link when no full text is available.
+   */
+  paywall: 'none' | 'partial';
+  /** Rough posting frequency, used to sanity-check the "recent items" window. */
+  cadence: 'daily' | 'weekly' | 'monthly' | 'irregular';
+  enabled: boolean;
+  notes?: string;
+}
+
+export const MARKETER_SOURCES: SourceConfig[] = [
+  // --- B2B / SaaS ---
+  // {
+  //   name: 'MKT1',
+  //   author: 'Emily Kramer',
+  //   feedUrl: 'https://newsletter.mkt1.co/feed',
+  //   homepageUrl: 'https://newsletter.mkt1.co',
+  //   paywall: 'partial',
+  //   cadence: 'weekly',
+  //   enabled: true,
+  // },
+  // {
+  //   name: 'Elena Verna',
+  //   author: 'Elena Verna',
+  //   feedUrl: 'https://www.elenaverna.com/feed',
+  //   homepageUrl: 'https://www.elenaverna.com',
+  //   paywall: 'partial',
+  //   cadence: 'weekly',
+  //   enabled: true,
+  // },
+  // {
+  //   name: "Lenny's Newsletter",
+  //   author: 'Lenny Rachitsky',
+  //   feedUrl: 'https://www.lennysnewsletter.com/feed',
+  //   homepageUrl: 'https://www.lennysnewsletter.com',
+  //   paywall: 'partial',
+  //   cadence: 'weekly',
+  //   enabled: true,
+  //   notes: 'Paid posts only carry a teaser in the feed.',
+  // },
+  // {
+  //   name: 'Growth Memo',
+  //   author: 'Kevin Indig',
+  //   feedUrl: 'https://www.growth-memo.com/feed',
+  //   homepageUrl: 'https://www.growth-memo.com',
+  //   paywall: 'partial',
+  //   cadence: 'weekly',
+  //   enabled: true,
+  //   notes: 'SEO and AI search.',
+  // },
+  {
+    name: 'Foundation',
+    author: 'Ross Simmonds',
+    feedUrl: 'https://foundationinc.co/feed/',
+    homepageUrl: 'https://foundationinc.co',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+  },
+  {
+    name: 'HubSpot Marketing Blog',
+    author: 'HubSpot',
+    feedUrl: 'https://blog.hubspot.com/marketing/rss.xml',
+    homepageUrl: 'https://blog.hubspot.com/marketing',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'High volume and beginner-friendly.',
+  },
+  {
+    name: 'Andrew Chen',
+    author: 'Andrew Chen',
+    feedUrl: 'https://andrewchen.substack.com/feed',
+    homepageUrl: 'https://andrewchen.substack.com',
+    paywall: 'none',
+    cadence: 'irregular',
+    enabled: true,
+  },
+  {
+    name: 'April Dunford',
+    author: 'April Dunford',
+    feedUrl: 'https://aprildunford.substack.com/feed',
+    homepageUrl: 'https://aprildunford.substack.com',
+    paywall: 'none',
+    cadence: 'irregular',
+    enabled: true,
+    notes: 'Positioning. Posts rarely (last: June 2026).',
+  },
+
+  // --- Performance / paid ---
+  {
+    name: 'Jon Loomer',
+    author: 'Jon Loomer',
+    feedUrl: 'https://www.jonloomer.com/feed/',
+    homepageUrl: 'https://www.jonloomer.com',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Meta Ads.',
+  },
+  {
+    name: 'Common Thread Collective',
+    author: 'Common Thread Collective',
+    feedUrl: 'https://commonthreadco.com/blogs/coachs-corner.atom',
+    homepageUrl: 'https://commonthreadco.com/blogs/coachs-corner',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Measurement, ad creative, DTC scaling.',
+  },
+  {
+    name: 'PPC Land',
+    author: 'PPC Land',
+    feedUrl: 'https://ppc.land/rss/',
+    homepageUrl: 'https://ppc.land',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Very high volume (100 items in feed).',
+  },
+  {
+    name: 'Google Ads & Commerce Blog',
+    author: 'Google',
+    feedUrl: 'https://blog.google/products/ads-commerce/rss/',
+    homepageUrl: 'https://blog.google/products/ads-commerce/',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Official product announcements.',
+  },
+  {
+    name: 'Search Engine Journal',
+    author: 'Search Engine Journal',
+    feedUrl: 'https://www.searchenginejournal.com/feed/',
+    homepageUrl: 'https://www.searchenginejournal.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+  },
+  {
+    name: 'Search Engine Roundtable',
+    author: 'Barry Schwartz',
+    feedUrl: 'https://www.seroundtable.com/index.rdf',
+    homepageUrl: 'https://www.seroundtable.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Daily SEO news; noisy.',
+  },
+
+  // --- Brand / content / social ---
+  // {
+  //   name: 'Marketing Week',
+  //   author: 'Marketing Week',
+  //   feedUrl: 'https://www.marketingweek.com/feed/',
+  //   homepageUrl: 'https://www.marketingweek.com',
+  //   paywall: 'partial',
+  //   cadence: 'daily',
+  //   enabled: true,
+  //   notes: "Includes Mark Ritson's column.",
+  // },
+  {
+    name: 'SparkToro',
+    author: 'Rand Fishkin',
+    feedUrl: 'https://sparktoro.com/blog/feed/',
+    homepageUrl: 'https://sparktoro.com/blog',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+  },
+  {
+    name: 'Amanda Natividad',
+    author: 'Amanda Natividad',
+    feedUrl: 'https://amandanat.substack.com/feed',
+    homepageUrl: 'https://amandanat.substack.com',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+  },
+  {
+    name: 'Seth Godin',
+    author: 'Seth Godin',
+    feedUrl: 'https://seths.blog/feed/',
+    homepageUrl: 'https://seths.blog',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Short daily posts.',
+  },
+  {
+    name: 'Ahrefs Blog',
+    author: 'Ahrefs',
+    feedUrl: 'https://ahrefs.com/blog/feed/',
+    homepageUrl: 'https://ahrefs.com/blog',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+  },
+  {
+    name: 'Buffer',
+    author: 'Buffer',
+    feedUrl: 'https://buffer.com/resources/rss/',
+    homepageUrl: 'https://buffer.com/resources',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+  },
+  {
+    name: 'Sprout Social Insights',
+    author: 'Sprout Social',
+    feedUrl: 'https://sproutsocial.com/insights/feed/',
+    homepageUrl: 'https://sproutsocial.com/insights',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+  },
+  {
+    name: 'Moz Blog',
+    author: 'Moz',
+    feedUrl: 'https://moz.com/feeds/blog.rss',
+    homepageUrl: 'https://moz.com/blog',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+  },
+
+  // --- E-commerce / DTC ---
+  // {
+  //   name: 'Modern Retail',
+  //   author: 'Modern Retail',
+  //   feedUrl: 'https://www.modernretail.co/feed/',
+  //   homepageUrl: 'https://www.modernretail.co',
+  //   paywall: 'partial',
+  //   cadence: 'daily',
+  //   enabled: true,
+  // },
+  // {
+  //   name: '2PM',
+  //   author: 'Web Smith',
+  //   feedUrl: 'https://2pml.com/feed/',
+  //   homepageUrl: 'https://2pml.com',
+  //   paywall: 'partial',
+  //   cadence: 'weekly',
+  //   enabled: true,
+  // },
+
+  // // --- Industry news ---
+  // {
+  //   name: 'Digiday',
+  //   author: 'Digiday',
+  //   feedUrl: 'https://digiday.com/feed/',
+  //   homepageUrl: 'https://digiday.com',
+  //   paywall: 'partial',
+  //   cadence: 'daily',
+  //   enabled: true,
+  // },
+  {
+    name: 'Marketing Dive',
+    author: 'Marketing Dive',
+    feedUrl: 'https://www.marketingdive.com/feeds/news/',
+    homepageUrl: 'https://www.marketingdive.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+  },
+  {
+    name: 'Social Media Today',
+    author: 'Social Media Today',
+    feedUrl: 'https://www.socialmediatoday.com/feeds/news/',
+    homepageUrl: 'https://www.socialmediatoday.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Platform feature updates.',
+  },
+  {
+    name: 'MarTech',
+    author: 'MarTech',
+    feedUrl: 'https://martech.org/feed/',
+    homepageUrl: 'https://martech.org',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+  },
+  // {
+  //   name: 'Adweek',
+  //   author: 'Adweek',
+  //   feedUrl: 'https://www.adweek.com/feed/',
+  //   homepageUrl: 'https://www.adweek.com',
+  //   paywall: 'partial',
+  //   cadence: 'daily',
+  //   enabled: true,
+  // },
+  // {
+  //   name: 'Campaign',
+  //   author: 'Campaign',
+  //   feedUrl: 'https://www.campaignlive.com/rss/news',
+  //   homepageUrl: 'https://www.campaignlive.com',
+  //   paywall: 'partial',
+  //   cadence: 'daily',
+  //   enabled: true,
+  // },
+  // {
+  //   name: 'AdExchanger',
+  //   author: 'AdExchanger',
+  //   feedUrl: 'https://www.adexchanger.com/feed/',
+  //   homepageUrl: 'https://www.adexchanger.com',
+  //   paywall: 'partial',
+  //   cadence: 'daily',
+  //   enabled: true,
+  //   notes: 'Ad tech-heavy.',
+  // },
+
+  // --- Added for daily issues: frequent, free-to-read sources ---
+  // Checked on 2026-11-12; "N/week" is the number of posts in the last 7 days.
+
+  // Brand / creative / social
+  {
+    name: 'Muse by Clio',
+    author: 'Muse by Clio',
+    feedUrl: 'https://musebyclios.com/feed/',
+    homepageUrl: 'https://musebyclios.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Ad campaigns and creative work. ~20/week.',
+  },
+  {
+    name: 'Social Media Examiner',
+    author: 'Social Media Examiner',
+    feedUrl: 'https://www.socialmediaexaminer.com/feed/',
+    homepageUrl: 'https://www.socialmediaexaminer.com',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Social media tactics. ~4/week.',
+  },
+  {
+    name: 'Hootsuite Blog',
+    author: 'Hootsuite',
+    feedUrl: 'https://blog.hootsuite.com/feed/',
+    homepageUrl: 'https://blog.hootsuite.com',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Social media how-tos and data. ~6/week.',
+  },
+  {
+    name: 'TechCrunch Social',
+    author: 'TechCrunch',
+    feedUrl: 'https://techcrunch.com/category/social/feed/',
+    homepageUrl: 'https://techcrunch.com/category/social/',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Social platform news. ~6/week.',
+  },
+  {
+    name: 'Meta Newsroom',
+    author: 'Meta',
+    feedUrl: 'https://about.fb.com/feed/',
+    homepageUrl: 'https://about.fb.com/news/',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes:
+      'Official Meta announcements; not all are marketing-related. ~4/week.',
+  },
+
+  // B2B / marketing leadership
+  {
+    name: 'Chief Marketer',
+    author: 'Chief Marketer',
+    feedUrl: 'https://www.chiefmarketer.com/feed/',
+    homepageUrl: 'https://www.chiefmarketer.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Brand and B2B marketing news and case studies. ~10/week.',
+  },
+  {
+    name: 'CX Dive',
+    author: 'CX Dive',
+    feedUrl: 'https://www.customerexperiencedive.com/feeds/news/',
+    homepageUrl: 'https://www.customerexperiencedive.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Customer experience news. ~10/week.',
+  },
+
+  // Performance / SEO
+  {
+    name: 'Semrush Blog',
+    author: 'Semrush',
+    feedUrl: 'https://www.semrush.com/blog/feed/',
+    homepageUrl: 'https://www.semrush.com/blog/',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'SEO and content marketing. ~7/week.',
+  },
+  {
+    name: 'WordStream',
+    author: 'WordStream',
+    feedUrl: 'https://www.wordstream.com/blog/feed',
+    homepageUrl: 'https://www.wordstream.com/blog',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Google and Meta ads for small businesses. ~3/week.',
+  },
+
+  // E-commerce / retail / email
+  {
+    name: 'Retail Dive',
+    author: 'Retail Dive',
+    feedUrl: 'https://www.retaildive.com/feeds/news/',
+    homepageUrl: 'https://www.retaildive.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Retail and brand news. ~10/week.',
+  },
+  {
+    name: 'Digital Commerce 360',
+    author: 'Digital Commerce 360',
+    feedUrl: 'https://www.digitalcommerce360.com/feed/',
+    homepageUrl: 'https://www.digitalcommerce360.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes:
+      'E-commerce news. News is free; their research reports are paid. ~9/week.',
+  },
+  {
+    name: 'Practical Ecommerce',
+    author: 'Practical Ecommerce',
+    feedUrl: 'https://www.practicalecommerce.com/feed',
+    homepageUrl: 'https://www.practicalecommerce.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Tactics for online merchants. ~6/week.',
+  },
+  {
+    name: 'Omnisend Blog',
+    author: 'Omnisend',
+    feedUrl: 'https://www.omnisend.com/blog/feed/',
+    homepageUrl: 'https://www.omnisend.com/blog/',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Email and SMS marketing for e-commerce. ~6/week.',
+  },
+
+  // --- Second expansion: brand/creative/social, B2B, performance ---
+  // Checked on 2026-11-12; "N/week" is the number of posts in the last 7 days.
+
+  // Brand / creative / PR
+  {
+    name: 'Campaign Brief',
+    author: 'Campaign Brief',
+    feedUrl: 'https://campaignbrief.com/feed/',
+    homepageUrl: 'https://campaignbrief.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Agency and campaign news, mostly Australia/NZ. ~30/week.',
+  },
+  {
+    name: 'PR Daily',
+    author: 'Ragan',
+    feedUrl: 'https://www.prdaily.com/feed/',
+    homepageUrl: 'https://www.prdaily.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'PR and communications. ~14/week.',
+  },
+  {
+    name: 'Design Week',
+    author: 'Design Week',
+    feedUrl: 'https://www.designweek.co.uk/feed/',
+    homepageUrl: 'https://www.designweek.co.uk',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Branding and design industry. ~11/week.',
+  },
+  {
+    name: 'Dieline',
+    author: 'Dieline',
+    feedUrl: 'https://thedieline.com/feed',
+    homepageUrl: 'https://thedieline.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'Packaging and brand design. ~10/week.',
+  },
+  {
+    name: 'BP&O',
+    author: 'Richard Baird',
+    feedUrl: 'https://bpando.org/feed/',
+    homepageUrl: 'https://bpando.org',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Brand identity and packaging critique. ~3/week.',
+  },
+
+  // Social / creators / platforms
+  {
+    name: 'Link in Bio',
+    author: 'Rachel Karten',
+    feedUrl: 'https://www.milkkarten.net/feed',
+    homepageUrl: 'https://www.milkkarten.net',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Social media strategy for brands. ~3/week.',
+  },
+  {
+    name: 'ICYMI',
+    author: 'Lia Haberman',
+    feedUrl: 'https://liahaberman.substack.com/feed',
+    homepageUrl: 'https://liahaberman.substack.com',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Creator and influencer marketing. ~1/week.',
+  },
+  {
+    name: 'Socialinsider Blog',
+    author: 'Socialinsider',
+    feedUrl: 'https://www.socialinsider.io/blog/rss/',
+    homepageUrl: 'https://www.socialinsider.io/blog',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Social media benchmarks and data. ~4/week.',
+  },
+  {
+    name: 'YouTube Official Blog',
+    author: 'YouTube',
+    feedUrl: 'https://blog.youtube/rss/',
+    homepageUrl: 'https://blog.youtube',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Official YouTube announcements. ~3/week.',
+  },
+  {
+    name: 'Reddit Upvoted',
+    author: 'Reddit',
+    feedUrl: 'https://redditinc.com/blog/rss.xml',
+    homepageUrl: 'https://redditinc.com/blog',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Official Reddit company and ads news. ~2/week.',
+  },
+
+  // B2B / SaaS
+  {
+    name: 'SaaStr',
+    author: 'Jason Lemkin',
+    feedUrl: 'https://www.saastr.com/feed/',
+    homepageUrl: 'https://www.saastr.com',
+    paywall: 'none',
+    cadence: 'daily',
+    enabled: true,
+    notes: 'SaaS go-to-market and growth. ~7/week.',
+  },
+  {
+    name: 'Product Marketing Alliance',
+    author: 'Product Marketing Alliance',
+    feedUrl: 'https://www.productmarketingalliance.com/feed/',
+    homepageUrl: 'https://www.productmarketingalliance.com',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Product marketing, positioning, launches. ~6/week.',
+  },
+  {
+    name: 'Siege Media Blog',
+    author: 'Siege Media',
+    feedUrl: 'https://www.siegemedia.com/feed',
+    homepageUrl: 'https://www.siegemedia.com/blog',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Content marketing and SEO. ~1/week.',
+  },
+
+  // Performance / SEO
+  {
+    name: 'Lily Ray',
+    author: 'Lily Ray',
+    feedUrl: 'https://lilyray.substack.com/feed',
+    homepageUrl: 'https://lilyray.substack.com',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'SEO and AI search. ~1/week.',
+  },
+  {
+    name: 'GSQi',
+    author: 'Glenn Gabe',
+    feedUrl: 'https://www.gsqi.com/marketing-blog/feed/',
+    homepageUrl: 'https://www.gsqi.com/marketing-blog/',
+    paywall: 'none',
+    cadence: 'irregular',
+    enabled: true,
+    notes: 'In-depth analysis of Google algorithm updates. ~1/week.',
+  },
+  {
+    name: 'Google Search Central Blog',
+    author: 'Google',
+    feedUrl: 'https://developers.google.com/search/blog/feed.xml',
+    homepageUrl: 'https://developers.google.com/search/blog',
+    paywall: 'none',
+    cadence: 'irregular',
+    enabled: true,
+    notes: 'Official Google Search announcements. ~1/week.',
+  },
+  {
+    name: 'Microsoft Advertising Blog',
+    author: 'Microsoft',
+    feedUrl: 'https://about.ads.microsoft.com/en/blog/rss',
+    homepageUrl: 'https://about.ads.microsoft.com/en/blog',
+    paywall: 'none',
+    cadence: 'irregular',
+    enabled: true,
+    notes: 'Official Microsoft Ads announcements. ~1/week.',
+  },
+  {
+    name: 'PPC Hero',
+    author: 'PPC Hero',
+    feedUrl: 'https://www.ppchero.com/feed/',
+    homepageUrl: 'https://www.ppchero.com',
+    paywall: 'none',
+    cadence: 'weekly',
+    enabled: true,
+    notes: 'Paid search and paid social tactics. ~2/week.',
+  },
+];
+
+/**
+ * Worth adding once ingestion supports scraping or email-to-RSS.
+ * None of these had a usable feed on 2026-11-12.
+ */
+export const MARKETER_SOURCES_BACKLOG: {
+  name: string;
+  url: string;
+  reason: string;
+}[] = [
+  {
+    name: 'Growth Unhinged (Kyle Poyar)',
+    url: 'https://www.growthunhinged.com',
+    reason: 'Moved off Substack; old feed stops in Jan 2026, no new feed found',
+  },
+  {
+    name: 'Mobile Dev Memo (Eric Seufert)',
+    url: 'https://mobiledevmemo.com',
+    reason: 'No feed found',
+  },
+  {
+    name: 'First Round Review',
+    url: 'https://review.firstround.com',
+    reason: 'No feed found',
+  },
+  {
+    name: 'Marketing Examples (Harry Dry)',
+    url: 'https://marketingexamples.com',
+    reason: 'No feed found',
+  },
+  {
+    name: 'Why We Buy (Katelyn Bourgoin)',
+    url: 'https://www.whywebuy.com',
+    reason: 'No feed found',
+  },
+  {
+    name: 'Klaviyo Blog',
+    url: 'https://www.klaviyo.com/blog',
+    reason: 'No feed found',
+  },
+  {
+    name: 'Shopify Blog',
+    url: 'https://www.shopify.com/blog',
+    reason: 'No feed found',
+  },
+  {
+    name: 'Marketing Brew',
+    url: 'https://www.marketingbrew.com',
+    reason: 'No feed found',
+  },
+  {
+    name: 'Retail Brew',
+    url: 'https://www.retailbrew.com',
+    reason: 'Blocked (403)',
+  },
+  { name: 'The Drum', url: 'https://www.thedrum.com', reason: 'No feed found' },
+  {
+    name: 'Exit Five (Dave Gerhardt)',
+    url: 'https://www.exitfive.com',
+    reason: 'Feed has only 1 item',
+  },
+  {
+    name: 'Search Engine Land',
+    url: 'https://searchengineland.com/feed',
+    reason: 'Cloudflare challenge; may work from a server',
+  },
+  { name: 'Ad Age', url: 'https://adage.com', reason: 'Blocked (403)' },
+  { name: 'CXL', url: 'https://cxl.com/blog', reason: 'Blocked (403)' },
+];
+
+export const SOURCES_BY_NEWSLETTER: Partial<
+  Record<NewsletterEnum, SourceConfig[]>
+> = {
+  [NewsletterEnum.Marketer]: MARKETER_SOURCES,
+};

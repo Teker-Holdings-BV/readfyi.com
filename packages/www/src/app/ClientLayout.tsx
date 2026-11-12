@@ -10,7 +10,7 @@ import {
   TrackingPlatformEnum,
   TrackingProvider,
   useTracking,
-} from "@readfyi/tracking";
+} from "@teker-holdings-bv/tracking";
 import Script from "next/script";
 import { useEffect } from "react";
 
