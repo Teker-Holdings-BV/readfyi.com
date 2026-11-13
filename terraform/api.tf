@@ -64,6 +64,13 @@ resource "google_cloud_run_v2_service" "api" {
 				value = var.zepto_api_key
 			}
 
+			# Keep ZeptoMail in production until SES is out of the sandbox
+			# and AWS credentials are provisioned here.
+			env {
+				name = "MAIL_PROVIDER"
+				value = "zepto"
+			}
+
 			env {
 				name = "META_PIXEL_ID"
 				value = local.env_vars.common.META_PIXEL_ID

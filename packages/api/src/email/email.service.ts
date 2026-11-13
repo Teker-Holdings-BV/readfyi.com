@@ -1,31 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { isValidEmail } from '@readfyi/shared';
 import { isProdLike } from '@readfyi/shared';
-import { SendMailClient } from 'zeptomail';
+import { MailProvider, SendEmailParams } from './mail-provider';
 
-interface SendEmailParams {
-  to: { email: string; name: string }[];
-  subject: string;
-  htmlBody: string;
-  plainTextContent?: string;
-  cc?: { email: string; name: string }[];
-  bcc?: { email: string; name: string }[];
-  attachments?: { name: string; content: string }[]; // content in base64
-}
+export type { SendEmailParams } from './mail-provider';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
-  private zeptoClient: SendMailClient;
-
-  constructor(private readonly configService: ConfigService) {
-    this.zeptoClient = new SendMailClient({
-      url: 'api.zeptomail.eu/',
-      token: this.configService.get<string>('ZEPTO_API_KEY'),
-    });
-  }
+  constructor(private readonly mailProvider: MailProvider) {}
 
   send(params: SendEmailParams) {
     if (!isProdLike()) {
@@ -39,27 +23,7 @@ export class EmailService {
     this.logger.log('Sending email...');
     this.logger.log(params);
 
-    return this.zeptoClient.sendMail({
-      from: {
-        address: 'newsletter@readfyi.com',
-        name: 'FYI Newsletter',
-      },
-      to: params.to.map((to) => ({
-        email_address: { address: to.email, name: to.name },
-      })),
-      subject: params.subject,
-      htmlBody: params.htmlBody,
-      cc: params.cc?.map((cc) => ({
-        email_address: { address: cc.email, name: cc.name },
-      })),
-      bcc: params.bcc?.map((bcc) => ({
-        email_address: { address: bcc.email, name: bcc.name },
-      })),
-      attachments: params.attachments?.map((att) => ({
-        name: att.name,
-        content: att.content,
-      })),
-    });
+    return this.mailProvider.send(params);
   }
 
   async isValid(email: string) {
