@@ -13,9 +13,11 @@ type FormData = {
 
 interface SignupFormProps {
   newsletter?: NewsletterEnum;
+  /** Overrides the newsletter name in the header (role landing pages). */
+  title?: string;
 }
 
-const SignupForm: React.FC<SignupFormProps> = ({ newsletter }) => {
+const SignupForm: React.FC<SignupFormProps> = ({ newsletter, title }) => {
   const { track } = useTracking();
   const { t } = useTranslation();
 
@@ -76,9 +78,8 @@ const SignupForm: React.FC<SignupFormProps> = ({ newsletter }) => {
     );
   };
 
-  const newsletterLabel = newsletter
-    ? capitalizeFirst(t(newsletter))
-    : "Newsletter";
+  const newsletterLabel =
+    title ?? (newsletter ? capitalizeFirst(t(newsletter)) : "Newsletter");
   const newsletterEmoji = newsletter ? t(`${newsletter}_emoji`) : "📰";
   const subheader = newsletter
     ? t(`${newsletter}_subheader`)
