@@ -1,10 +1,10 @@
 import { Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
+import { Test } from '@nestjs/testing';
 import { EmailService } from './email.service';
+import { EmailModule } from './email.module';
 import { MailProvider, SendEmailParams } from './mail-provider';
-import { createMailProvider } from './email.module';
 import { SesMailProvider } from './providers/ses-mail.provider';
-import { ZeptoMailProvider } from './providers/zepto-mail.provider';
 
 const params: SendEmailParams = {
   to: [{ email: 'reader@example.com', name: '' }],
@@ -42,10 +42,7 @@ describe('EmailService', () => {
   });
 });
 
-describe('createMailProvider', () => {
-  const config = (values: Record<string, string>) =>
-    ({ get: (key: string) => values[key] }) as unknown as ConfigService;
-
+describe('EmailModule', () => {
   const sesValues = {
     AWS_REGION: 'eu-north-1',
     AWS_ACCESS_KEY_ID: 'AKIATEST',
@@ -53,23 +50,28 @@ describe('createMailProvider', () => {
     SES_FROM_ADDRESS: 'newsletter@marketer.readfyi.com',
   };
 
-  it('defaults to SES', () => {
-    expect(createMailProvider(config(sesValues))).toBeInstanceOf(
-      SesMailProvider,
-    );
+  const compile = (values: Record<string, string>) =>
+    Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          ignoreEnvFile: true,
+          ignoreEnvVars: true,
+          load: [() => values],
+        }),
+        EmailModule,
+      ],
+    }).compile();
+
+  it('uses SES as the mail provider', async () => {
+    const moduleRef = await compile(sesValues);
+    expect(moduleRef.get(MailProvider)).toBeInstanceOf(SesMailProvider);
+    expect(moduleRef.get(EmailService)).toBeInstanceOf(EmailService);
   });
 
-  it('can fall back to ZeptoMail', () => {
-    expect(
-      createMailProvider(
-        config({ MAIL_PROVIDER: 'zepto', ZEPTO_API_KEY: 'k' }),
-      ),
-    ).toBeInstanceOf(ZeptoMailProvider);
-  });
-
-  it('rejects unknown providers', () => {
-    expect(() => createMailProvider(config({ MAIL_PROVIDER: 'smtp' }))).toThrow(
-      'Unknown MAIL_PROVIDER "smtp"',
-    );
+  it('fails at startup when SES config is missing', async () => {
+    await expect(
+      compile({ ...sesValues, SES_FROM_ADDRESS: '' }),
+    ).rejects.toThrow('SES mail provider is missing required config');
   });
 });

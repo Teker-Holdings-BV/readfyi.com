@@ -17,6 +17,8 @@ import { IpModule } from './ip/ip.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
+        // DATABASE_URL (set on the VPS) takes precedence over the POSTGRES_* values.
+        url: configService.get<string>('DATABASE_URL') || undefined,
         host: configService.get<string>('POSTGRES_HOST'),
         port: Number(configService.get<number>('POSTGRES_PORT')),
         database: configService.get<string>('POSTGRES_DB'),

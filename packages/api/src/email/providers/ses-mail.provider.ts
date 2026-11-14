@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   SESv2Client,
@@ -20,6 +20,7 @@ const REQUIRED_CONFIG = [
   'SES_FROM_ADDRESS',
 ] as const;
 
+@Injectable()
 export class SesMailProvider extends MailProvider {
   private readonly logger = new Logger(SesMailProvider.name);
   private readonly client: SESv2Client;

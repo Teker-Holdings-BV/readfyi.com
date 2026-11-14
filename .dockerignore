@@ -1,0 +1,15 @@
+# Keep secrets, local state and build output out of the Docker build context.
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules
+**/dist
+# Built on the host by scripts/publish-api.sh and copied into the image.
+!packages/shared/dist
+**/.next
+**/out
+**/.wrangler
+**/coverage
+.git
+data
+terraform

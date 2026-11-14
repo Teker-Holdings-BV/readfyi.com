@@ -6,6 +6,8 @@ config();
 
 const AppDataSource = new DataSource({
 	type: 'postgres',
+	// DATABASE_URL (set on the VPS) takes precedence over the POSTGRES_* values.
+	url: process.env.DATABASE_URL || undefined,
 	host: process.env.POSTGRES_HOST,
 	port: parseInt(process.env.POSTGRES_PORT || '', 5432),
 	username: process.env.POSTGRES_USER,
