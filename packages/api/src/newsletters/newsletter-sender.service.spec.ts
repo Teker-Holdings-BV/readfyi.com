@@ -57,7 +57,7 @@ describe('NewsletterSenderService', () => {
     jest.restoreAllMocks();
   });
 
-  it('runs every hour on the hour, Amsterdam time', () => {
+  it('runs daily at 09:00, Amsterdam time', () => {
     // Metadata key @nestjs/schedule stores the @Cron options under.
     const handler = Object.getOwnPropertyDescriptor(
       NewsletterSenderService.prototype,
@@ -67,7 +67,7 @@ describe('NewsletterSenderService', () => {
       cronTime: string;
       timeZone: string;
     };
-    expect(options.cronTime).toBe('0 * * * *');
+    expect(options.cronTime).toBe('0 9 * * *');
     expect(options.timeZone).toBe('Europe/Amsterdam');
   });
 

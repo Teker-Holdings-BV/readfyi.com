@@ -12,9 +12,9 @@ import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 
 /**
  * When the newsletter is sent, in NEWSLETTER_TIME_ZONE.
- * Hourly for now; switch to '0 9 * * *' for daily at 09:00.
+ * Daily at 09:00.
  */
-export const NEWSLETTER_CRON = '0 * * * *';
+export const NEWSLETTER_CRON = '0 9 * * *';
 export const NEWSLETTER_TIME_ZONE = 'Europe/Amsterdam';
 
 /** SES errors that affect every send: stop the run instead of retrying. */
