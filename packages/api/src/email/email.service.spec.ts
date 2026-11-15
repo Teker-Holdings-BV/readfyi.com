@@ -48,11 +48,6 @@ describe('EmailService', () => {
       mxCheck.mockReset().mockResolvedValue(true);
     });
 
-    it('rejects disposable addresses without a DNS lookup', async () => {
-      await expect(service.isValid('x@mailinator.com')).resolves.toBe(false);
-      expect(mxCheck).not.toHaveBeenCalled();
-    });
-
     it('checks normalized addresses with the shared validator', async () => {
       await expect(service.isValid(' Reader@Gmail.com ')).resolves.toBe(true);
       expect(mxCheck).toHaveBeenCalledWith('reader@gmail.com');

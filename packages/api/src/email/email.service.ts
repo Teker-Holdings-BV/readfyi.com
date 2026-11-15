@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { isValidEmail } from '@readfyi/shared';
 import { isProdLike } from '@readfyi/shared';
 import { MailProvider, SendEmailParams } from './mail-provider';
-import { isDisposableEmail } from './disposable-email';
 import { normalizeEmail } from './normalize-email';
 
 export type { SendEmailParams } from './mail-provider';
@@ -33,9 +32,6 @@ export class EmailService {
    * disposable provider, and the domain accepts mail (MX lookup).
    */
   async isValid(email: string) {
-    const normalized = normalizeEmail(email);
-    // Cheap local check first; the MX lookup needs a DNS round trip.
-    if (isDisposableEmail(normalized)) return false;
-    return isValidEmail(normalized);
+    return isValidEmail(normalizeEmail(email));
   }
 }
