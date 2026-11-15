@@ -1,0 +1,62 @@
+import { BadRequestException } from '@nestjs/common';
+import { NewsletterEnum } from '@readfyi/shared';
+import { SubscriptionsController } from './subscriptions.controller';
+import { SubscriptionsService } from './subscriptions.service';
+import { SubscribersService } from 'src/subscribers/subscribers.service';
+import { EmailService } from 'src/email/email.service';
+
+describe('SubscriptionsController.subscribe', () => {
+  let isValid: jest.Mock;
+  let findOneOrCreate: jest.Mock;
+  let createSubscription: jest.Mock;
+  let controller: SubscriptionsController;
+
+  beforeEach(() => {
+    isValid = jest.fn().mockResolvedValue(true);
+    findOneOrCreate = jest.fn().mockResolvedValue({ uuid: 'sub-1' });
+    createSubscription = jest.fn().mockResolvedValue(undefined);
+    controller = new SubscriptionsController(
+      { findOneOrCreate } as unknown as SubscribersService,
+      {
+        findOneOrCreate: createSubscription,
+      } as unknown as SubscriptionsService,
+      { isValid } as unknown as EmailService,
+    );
+  });
+
+  it('normalizes the email and subscribes valid addresses', async () => {
+    await controller.subscribe({
+      email: '  Reader@Gmail.com ',
+      newsletters: [NewsletterEnum.Marketer],
+    });
+
+    expect(isValid).toHaveBeenCalledWith('reader@gmail.com');
+    expect(findOneOrCreate).toHaveBeenCalledWith('reader@gmail.com');
+    expect(createSubscription).toHaveBeenCalledWith({
+      subscriberUuid: 'sub-1',
+      newsletter: NewsletterEnum.Marketer,
+    });
+  });
+
+  it('rejects invalid addresses before creating a subscriber', async () => {
+    isValid.mockResolvedValue(false);
+
+    await expect(
+      controller.subscribe({
+        email: 'x@mailinator.com',
+        newsletters: [NewsletterEnum.Marketer],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(findOneOrCreate).not.toHaveBeenCalled();
+  });
+
+  it('rejects a missing email', async () => {
+    await expect(
+      controller.subscribe({
+        email: undefined as unknown as string,
+        newsletters: [NewsletterEnum.Marketer],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(isValid).not.toHaveBeenCalled();
+  });
+});

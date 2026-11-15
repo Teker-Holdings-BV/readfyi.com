@@ -1,10 +1,16 @@
 import { Logger } from '@nestjs/common';
+import { isValidEmail } from '@readfyi/shared';
 import { ConfigModule } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { EmailService } from './email.service';
 import { EmailModule } from './email.module';
 import { MailProvider, SendEmailParams } from './mail-provider';
 import { SesMailProvider } from './providers/ses-mail.provider';
+
+jest.mock('@readfyi/shared', () => ({
+  ...jest.requireActual<object>('@readfyi/shared'),
+  isValidEmail: jest.fn(),
+}));
 
 const params: SendEmailParams = {
   to: [{ email: 'reader@example.com', name: '' }],
@@ -33,6 +39,29 @@ describe('EmailService', () => {
     process.env.NODE_ENV = 'production';
     await expect(service.send(params)).resolves.toEqual({ messageId: 'id-1' });
     expect(providerSend).toHaveBeenCalledWith(params);
+  });
+
+  describe('isValid', () => {
+    const mxCheck = jest.mocked(isValidEmail);
+
+    beforeEach(() => {
+      mxCheck.mockReset().mockResolvedValue(true);
+    });
+
+    it('rejects disposable addresses without a DNS lookup', async () => {
+      await expect(service.isValid('x@mailinator.com')).resolves.toBe(false);
+      expect(mxCheck).not.toHaveBeenCalled();
+    });
+
+    it('checks normalized addresses with the shared validator', async () => {
+      await expect(service.isValid(' Reader@Gmail.com ')).resolves.toBe(true);
+      expect(mxCheck).toHaveBeenCalledWith('reader@gmail.com');
+    });
+
+    it('returns the shared validator result', async () => {
+      mxCheck.mockResolvedValue(false);
+      await expect(service.isValid('x@no-mx.example')).resolves.toBe(false);
+    });
   });
 
   it('only logs outside production-like environments', () => {

@@ -2,7 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OmitBase, SubscriberProps } from '@readfyi/shared';
 import { SubscribersEntity } from './subscribers.entity';
-import { Repository } from 'typeorm';
+import { Raw, Repository } from 'typeorm';
+import { normalizeEmail } from 'src/email/normalize-email';
 import { validate as isUuid } from 'uuid';
 
 @Injectable()
@@ -17,15 +18,23 @@ export class SubscribersService {
   async create(
     subscriber: OmitBase<SubscriberProps>,
   ): Promise<SubscribersEntity> {
-    this.logger.log(`Creating subscriber: ${JSON.stringify(subscriber)}`);
-    return this.subscribersRepository.save(subscriber);
+    const data = { ...subscriber, email: normalizeEmail(subscriber.email) };
+    this.logger.log(`Creating subscriber: ${JSON.stringify(data)}`);
+    return this.subscribersRepository.save(data);
   }
 
   findOne(uuidOrEmail: string): Promise<SubscriberProps | null> {
     return this.subscribersRepository.findOne({
       where: isUuid(uuidOrEmail)
         ? [{ uuid: uuidOrEmail }]
-        : [{ email: uuidOrEmail }],
+        : // Case-insensitive so rows saved before normalization still match.
+          [
+            {
+              email: Raw((column) => `LOWER(${column}) = :email`, {
+                email: normalizeEmail(uuidOrEmail),
+              }),
+            },
+          ],
     });
   }
 

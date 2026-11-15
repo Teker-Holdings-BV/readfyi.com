@@ -25,6 +25,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ newsletter, title }) => {
     register,
     handleSubmit,
     watch,
+    setError,
     formState: { errors, isSubmitting, isSubmitSuccessful },
   } = useForm<FormData>({
     defaultValues: {
@@ -36,16 +37,30 @@ const SignupForm: React.FC<SignupFormProps> = ({ newsletter, title }) => {
   const formValues = watch();
 
   const onSubmit = async (data: FormData) => {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_HOST}/subscriptions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    if (!response.ok) {
+      // Setting an error keeps the form open (isSubmitSuccessful stays false).
+      setError("email", {
+        message:
+          response.status === 400
+            ? "Please enter a valid email address."
+            : "Something went wrong. Please try again.",
+      });
+      return;
+    }
+
     track(TrackingEventEnum.Lead);
     track(TrackingEventEnum.Subscribe);
-
-    await fetch(`${process.env.NEXT_PUBLIC_API_HOST}/subscriptions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
   };
 
   const [verificationResendAt, setVerificationResendAt] = useState<Date>();
