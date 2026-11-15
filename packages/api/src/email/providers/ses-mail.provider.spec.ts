@@ -210,6 +210,76 @@ describe('SesMailProvider', () => {
     });
   });
 
+  describe('custom headers', () => {
+    const headers = {
+      'List-Unsubscribe':
+        '<https://api.readfyi.com/subscriptions/unsubscribe?token=t>',
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    };
+
+    it('passes headers to Content.Simple', async () => {
+      await new SesMailProvider(makeConfig()).send({ ...params, headers });
+      expect(sentInput().Content?.Simple?.Headers).toEqual([
+        { Name: 'List-Unsubscribe', Value: headers['List-Unsubscribe'] },
+        { Name: 'List-Unsubscribe-Post', Value: 'List-Unsubscribe=One-Click' },
+      ]);
+    });
+
+    it('omits Headers when none are given', async () => {
+      await new SesMailProvider(makeConfig()).send(params);
+      expect(sentInput().Content?.Simple?.Headers).toBeUndefined();
+    });
+
+    it('writes headers into raw MIME messages', async () => {
+      await new SesMailProvider(makeConfig()).send({
+        ...params,
+        headers,
+        attachments: [{ name: 'a.txt', content: 'YQ==' }],
+      });
+      const raw = Buffer.from(sentInput().Content!.Raw!.Data!).toString('utf8');
+      expect(raw).toContain(
+        `List-Unsubscribe: ${headers['List-Unsubscribe']}\r\n`,
+      );
+      expect(raw).toContain(
+        'List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n',
+      );
+    });
+
+    it('rejects header injection in values', async () => {
+      await expect(
+        new SesMailProvider(makeConfig()).send({
+          ...params,
+          headers: { 'X-Test': 'a\r\nBcc: victim@example.com' },
+        }),
+      ).rejects.toThrow('must not contain line breaks');
+      expect(sendSpy).not.toHaveBeenCalled();
+    });
+
+    it.each(['Bad Name', 'Bad:Name', ''])(
+      'rejects invalid header name "%s"',
+      async (name) => {
+        await expect(
+          new SesMailProvider(makeConfig()).send({
+            ...params,
+            headers: { [name]: 'x' },
+          }),
+        ).rejects.toThrow('Invalid header name');
+      },
+    );
+
+    it.each(['From', 'subject', 'Bcc'])(
+      'refuses to override the %s header',
+      async (name) => {
+        await expect(
+          new SesMailProvider(makeConfig()).send({
+            ...params,
+            headers: { [name]: 'x' },
+          }),
+        ).rejects.toThrow('cannot be set as a custom header');
+      },
+    );
+  });
+
   describe('error mapping', () => {
     const expectLoggedAndRethrown = async (error: Error, expected: string) => {
       sendSpy.mockRejectedValueOnce(error);

@@ -11,7 +11,12 @@ import {
   SendEmailParams,
   SendEmailResult,
 } from '../mail-provider';
-import { buildRawMessage, encodeHeaderValue, formatAddress } from './mime';
+import {
+  assertValidHeaders,
+  buildRawMessage,
+  encodeHeaderValue,
+  formatAddress,
+} from './mime';
 
 const REQUIRED_CONFIG = [
   'AWS_REGION',
@@ -88,12 +93,21 @@ export class SesMailProvider extends MailProvider {
         htmlBody: params.htmlBody,
         textBody: params.plainTextContent,
         attachments: params.attachments,
+        headers: params.headers,
       });
       return { Raw: { Data: Buffer.from(raw, 'utf8') } };
     }
 
+    if (params.headers) assertValidHeaders(params.headers);
+
     return {
       Simple: {
+        ...(params.headers && {
+          Headers: Object.entries(params.headers).map(([Name, Value]) => ({
+            Name,
+            Value,
+          })),
+        }),
         Subject: { Data: params.subject, Charset: 'UTF-8' },
         Body: {
           Html: { Data: params.htmlBody, Charset: 'UTF-8' },

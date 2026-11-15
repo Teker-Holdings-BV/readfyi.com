@@ -60,3 +60,40 @@ describe('SubscriptionsController.subscribe', () => {
     expect(isValid).not.toHaveBeenCalled();
   });
 });
+
+describe('SubscriptionsController.unsubscribe', () => {
+  const uuid = '3f2b8a52-5d0e-4b8e-9a43-1c2d3e4f5a6b';
+  let deleteSubscription: jest.Mock;
+  let controller: SubscriptionsController;
+
+  beforeEach(() => {
+    deleteSubscription = jest.fn().mockResolvedValue(undefined);
+    controller = new SubscriptionsController(
+      {} as SubscribersService,
+      { delete: deleteSubscription } as unknown as SubscriptionsService,
+      {} as EmailService,
+    );
+  });
+
+  it('removes only that newsletter subscription', async () => {
+    await expect(controller.unsubscribe(uuid, 'marketer')).resolves.toEqual({
+      unsubscribed: true,
+    });
+    expect(deleteSubscription).toHaveBeenCalledWith({
+      subscriberUuid: uuid,
+      newsletter: NewsletterEnum.Marketer,
+    });
+  });
+
+  it.each([
+    ['not-a-uuid', 'marketer'],
+    [uuid, 'unknown'],
+    [undefined, 'marketer'],
+    [uuid, undefined],
+  ])('rejects token=%s newsletter=%s', async (token, newsletter) => {
+    await expect(
+      controller.unsubscribe(token as string, newsletter as string),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(deleteSubscription).not.toHaveBeenCalled();
+  });
+});

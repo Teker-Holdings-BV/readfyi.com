@@ -26,6 +26,35 @@ function assertNoLineBreaks(value: string, field: string) {
   }
 }
 
+const HEADER_NAME = /^[!-9;-~]+$/; // RFC 5322: printable ASCII except ":"
+const RESERVED_HEADERS = new Set([
+  'from',
+  'to',
+  'cc',
+  'bcc',
+  'reply-to',
+  'subject',
+  'mime-version',
+  'content-type',
+  'content-transfer-encoding',
+]);
+
+/**
+ * Validates custom headers: valid names, no line breaks (header injection),
+ * and no overriding of headers the provider sets itself.
+ */
+export function assertValidHeaders(headers: Record<string, string>) {
+  for (const [name, value] of Object.entries(headers)) {
+    if (!HEADER_NAME.test(name)) {
+      throw new Error(`Invalid header name: ${name}`);
+    }
+    if (RESERVED_HEADERS.has(name.toLowerCase())) {
+      throw new Error(`Header ${name} cannot be set as a custom header`);
+    }
+    assertNoLineBreaks(value, `header ${name}`);
+  }
+}
+
 /** RFC 2047 encoded-word for non-ASCII header values. */
 export function encodeHeaderValue(value: string): string {
   if (PRINTABLE_ASCII.test(value)) return value;
@@ -98,6 +127,7 @@ export interface RawMessageParams {
   htmlBody: string;
   textBody?: string;
   attachments: EmailAttachment[];
+  headers?: Record<string, string>;
 }
 
 /**
@@ -118,10 +148,14 @@ export function buildRawMessage(params: RawMessageParams): string {
   if (params.replyTo?.length) {
     headers.push(`Reply-To: ${params.replyTo.map(formatAddress).join(', ')}`);
   }
-  headers.push(
-    `Subject: ${encodeHeaderValue(params.subject)}`,
-    'MIME-Version: 1.0',
-  );
+  headers.push(`Subject: ${encodeHeaderValue(params.subject)}`);
+  if (params.headers) {
+    assertValidHeaders(params.headers);
+    for (const [name, value] of Object.entries(params.headers)) {
+      headers.push(`${name}: ${value}`);
+    }
+  }
+  headers.push('MIME-Version: 1.0');
 
   const htmlPart = textPart('text/html', params.htmlBody);
   const bodyPart = params.textBody

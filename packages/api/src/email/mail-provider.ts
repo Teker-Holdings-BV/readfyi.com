@@ -20,6 +20,8 @@ export interface SendEmailParams {
   bcc?: EmailAddress[];
   replyTo?: EmailAddress[];
   attachments?: EmailAttachment[];
+  /** Extra message headers, e.g. List-Unsubscribe. Values must be ASCII. */
+  headers?: Record<string, string>;
 }
 
 export interface SendEmailResult {

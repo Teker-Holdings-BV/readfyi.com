@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Post,
   Put,
   Query,
@@ -16,6 +17,7 @@ import { SubscribersService } from 'src/subscribers/subscribers.service';
 import { NewsletterEnum } from '@readfyi/shared';
 import { EmailService } from 'src/email/email.service';
 import { normalizeEmail } from 'src/email/normalize-email';
+import { validate as isUuid } from 'uuid';
 
 @Controller('subscriptions')
 export class SubscriptionsController {
@@ -76,5 +78,30 @@ export class SubscriptionsController {
         newsletter,
       });
     }
+  }
+
+  /**
+   * One-click unsubscribe (RFC 8058), linked from the List-Unsubscribe header.
+   * Mail providers POST here without cookies or confirmation, so it must not
+   * require anything but the link's own parameters.
+   */
+  @Post('/unsubscribe')
+  @HttpCode(200)
+  async unsubscribe(
+    @Query('token') subscriberUuid: string,
+    @Query('newsletter') newsletter: string,
+  ) {
+    const isNewsletter = (Object.values(NewsletterEnum) as string[]).includes(
+      newsletter,
+    );
+    if (!isUuid(subscriberUuid) || !isNewsletter) {
+      throw new BadRequestException('Invalid unsubscribe link.');
+    }
+
+    await this.subscriptionsService.delete({
+      subscriberUuid,
+      newsletter: newsletter as NewsletterEnum,
+    });
+    return { unsubscribed: true };
   }
 }

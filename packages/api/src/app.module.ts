@@ -8,10 +8,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 import { EmailModule } from './email/email.module';
 import { IpModule } from './ip/ip.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { NewslettersModule } from './newsletters/newsletters.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -32,6 +35,7 @@ import { IpModule } from './ip/ip.module';
     SubscriptionsModule,
     EmailModule,
     IpModule,
+    NewslettersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

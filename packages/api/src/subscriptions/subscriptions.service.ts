@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SubscriptionProps } from '@readfyi/shared';
+import { NewsletterEnum, SubscriptionProps } from '@readfyi/shared';
 import { SubscribersService } from 'src/subscribers/subscribers.service';
 import { SubscriptionsEntity } from './subscriptions.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -26,6 +26,29 @@ export class SubscriptionsService {
         newsletter: subscription.newsletter,
       },
     });
+  }
+
+  /**
+   * Recipients for a newsletter send: subscriptions that are not deleted, of
+   * subscribers that are not deleted and confirmed their email (double opt-in).
+   */
+  async findActiveRecipients(
+    newsletter: NewsletterEnum,
+  ): Promise<{ subscriberUuid: string; email: string }[]> {
+    const subscriptions = await this.subscriptionsRepository
+      .createQueryBuilder('subscription')
+      .innerJoin('subscription.subscriber', 'subscriber')
+      .select(['subscription.uuid', 'subscriber.uuid', 'subscriber.email'])
+      .where('subscription.newsletter = :newsletter', { newsletter })
+      .andWhere('subscriber.verifiedAt IS NOT NULL')
+      .andWhere('subscriber.deletedAt IS NULL')
+      .orderBy('subscriber.createdAt', 'ASC')
+      .getMany();
+
+    return subscriptions.map((s) => ({
+      subscriberUuid: s.subscriber.uuid,
+      email: s.subscriber.email,
+    }));
   }
 
   async findBySubscriberUuid(
