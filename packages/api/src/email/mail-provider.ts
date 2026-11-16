@@ -12,6 +12,8 @@ export interface EmailAttachment {
 }
 
 export interface SendEmailParams {
+  /** Display name for the sender; defaults to the provider's configured name. */
+  fromName?: string;
   to: EmailAddress[];
   subject: string;
   htmlBody: string;

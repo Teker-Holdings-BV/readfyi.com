@@ -103,6 +103,16 @@ describe('SesMailProvider', () => {
       );
     });
 
+    it('uses fromName as the sender name when given', async () => {
+      await new SesMailProvider(makeConfig()).send({
+        ...params,
+        fromName: 'FYI Marketer',
+      });
+      expect(sentInput().FromEmailAddress).toBe(
+        '"FYI Marketer" <newsletter@marketer.readfyi.com>',
+      );
+    });
+
     it('includes the plain text body, cc, bcc and reply-to', async () => {
       await new SesMailProvider(makeConfig()).send({
         ...params,

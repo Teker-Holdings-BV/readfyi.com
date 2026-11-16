@@ -32,6 +32,18 @@ export interface NewsletterRunSummary {
   stopped: boolean;
 }
 
+const newsletterDateFormat = new Intl.DateTimeFormat('en-US', {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  timeZone: NEWSLETTER_TIME_ZONE,
+});
+
+/** Subject line: the send date in NEWSLETTER_TIME_ZONE, e.g. "Monday, November 16, 2026". */
+export const formatNewsletterDate = (date: Date) =>
+  newsletterDateFormat.format(date);
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 @Injectable()
@@ -66,11 +78,14 @@ export class NewsletterSenderService {
     }
 
     this.running = true;
+    // Fixed once per run so every recipient gets the same subject.
+    const subject = formatNewsletterDate(new Date());
     const summaries: NewsletterRunSummary[] = [];
     try {
       for (const newsletter of Object.values(NewsletterEnum)) {
         const summary = await this.sendNewsletter(
           newsletter,
+          subject,
           apiHost ?? 'http://localhost:3000',
           wwwHost ?? 'http://localhost:3001',
         );
@@ -85,6 +100,7 @@ export class NewsletterSenderService {
 
   private async sendNewsletter(
     newsletter: NewsletterEnum,
+    subject: string,
     apiHost: string,
     wwwHost: string,
   ): Promise<NewsletterRunSummary> {
@@ -107,7 +123,7 @@ export class NewsletterSenderService {
       const startedAt = Date.now();
       try {
         await this.emailService.send(
-          this.buildEmail(newsletter, recipient, apiHost, wwwHost),
+          this.buildEmail(newsletter, subject, recipient, apiHost, wwwHost),
         );
         summary.sent++;
       } catch (error) {
@@ -134,6 +150,7 @@ export class NewsletterSenderService {
 
   private buildEmail(
     newsletter: NewsletterEnum,
+    subject: string,
     recipient: { subscriberUuid: string; email: string },
     apiHost: string,
     wwwHost: string,
@@ -144,8 +161,9 @@ export class NewsletterSenderService {
     const label = capitalizeFirst(enUS[newsletter]);
 
     return {
+      fromName: `FYI ${label}`,
       to: [{ email: recipient.email, name: '' }],
-      subject: `FYI ${label}`,
+      subject,
       htmlBody: [
         '<p>test</p>',
         `<p style="font-size:12px;color:#666">You receive this because you subscribed to FYI ${label}. `,

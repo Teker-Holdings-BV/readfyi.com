@@ -66,9 +66,15 @@ export class SesMailProvider extends MailProvider {
     }
   }
 
+  private sender(params: SendEmailParams): EmailAddress {
+    return params.fromName
+      ? { email: this.from.email, name: params.fromName }
+      : this.from;
+  }
+
   private buildInput(params: SendEmailParams): SendEmailCommandInput {
     return {
-      FromEmailAddress: formatAddress(this.from),
+      FromEmailAddress: formatAddress(this.sender(params)),
       Destination: {
         ToAddresses: params.to.map(formatAddress),
         CcAddresses: params.cc?.map(formatAddress),
@@ -85,7 +91,7 @@ export class SesMailProvider extends MailProvider {
     if (params.attachments?.length) {
       // Attachments require a hand-built MIME message.
       const raw = buildRawMessage({
-        from: this.from,
+        from: this.sender(params),
         to: params.to,
         cc: params.cc,
         replyTo: params.replyTo,

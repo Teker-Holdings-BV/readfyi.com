@@ -71,13 +71,29 @@ describe('NewsletterSenderService', () => {
     expect(options.timeZone).toBe('Europe/Amsterdam');
   });
 
+  it('uses the send date in Amsterdam time as the subject', async () => {
+    // 23:30 UTC on Nov 16 is already Nov 17 in Amsterdam.
+    jest.useFakeTimers({
+      now: new Date('2026-11-16T23:30:00Z'),
+      advanceTimers: true,
+    });
+    try {
+      await service.sendNewsletters();
+    } finally {
+      jest.useRealTimers();
+    }
+
+    const subjects = new Set(sentEmails().map((e) => e.subject));
+    expect([...subjects]).toEqual(['Tuesday, November 17, 2026']);
+  });
+
   it('sends one email per active subscription, per newsletter', async () => {
     const summaries = await service.sendNewsletters();
 
     expect(findActiveRecipients).toHaveBeenCalledTimes(
       Object.values(NewsletterEnum).length,
     );
-    expect(sentEmails().map((e) => [e.subject, e.to[0].email])).toEqual([
+    expect(sentEmails().map((e) => [e.fromName, e.to[0].email])).toEqual([
       ['FYI AI', 'one@example.com'],
       ['FYI AI', 'two@example.com'],
       ['FYI Marketer', 'one@example.com'],
