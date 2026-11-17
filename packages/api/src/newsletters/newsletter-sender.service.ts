@@ -8,13 +8,15 @@ import {
   NewsletterEnum,
 } from '@readfyi/shared';
 import { EmailService, SendEmailParams } from 'src/email/email.service';
+import { Article } from 'src/sources/article-picker';
+import { ArticlesService } from 'src/sources/articles.service';
 import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 
 /**
  * When the newsletter is sent, in NEWSLETTER_TIME_ZONE.
  * Daily at 09:00.
  */
-export const NEWSLETTER_CRON = '0 * * * *';
+export const NEWSLETTER_CRON = '* * * * *';
 export const NEWSLETTER_TIME_ZONE = 'Europe/Amsterdam';
 
 /**
@@ -25,6 +27,20 @@ export const NEWSLETTER_TIME_ZONE = 'Europe/Amsterdam';
 export const SCHEDULED_NEWSLETTERS: readonly NewsletterEnum[] = [
   NewsletterEnum.Marketer,
 ];
+
+/** Number of articles in each newsletter issue. */
+export const ARTICLES_PER_ISSUE = 10;
+
+const INTRO = 'These are worth your read today:';
+const SIGN_OFF = ['Best,', 'Halil from FYI'];
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 /** SES errors that affect every send: stop the run instead of retrying. */
 const ACCOUNT_LEVEL_ERRORS = new Set([
@@ -64,6 +80,7 @@ export class NewsletterSenderService {
     private readonly config: ConfigService,
     private readonly subscriptionsService: SubscriptionsService,
     private readonly emailService: EmailService,
+    private readonly articlesService: ArticlesService,
   ) {}
 
   @Cron(NEWSLETTER_CRON, { name: 'newsletter', timeZone: NEWSLETTER_TIME_ZONE })
@@ -122,6 +139,23 @@ export class NewsletterSenderService {
       failed: 0,
       stopped: false,
     };
+    if (recipients.length === 0) {
+      this.logger.log(`No subscribers for "${newsletter}"; skipping.`);
+      return summary;
+    }
+
+    // Picked once per run, so every recipient gets the same issue.
+    const articles = await this.articlesService.pickForNewsletter(
+      newsletter,
+      ARTICLES_PER_ISSUE,
+    );
+    if (articles.length === 0) {
+      this.logger.error(
+        `No articles found for "${newsletter}"; not sending this newsletter.`,
+      );
+      return summary;
+    }
+
     this.logger.log(
       `Sending "${newsletter}" newsletter to ${recipients.length} subscribers.`,
     );
@@ -132,7 +166,14 @@ export class NewsletterSenderService {
       const startedAt = Date.now();
       try {
         await this.emailService.send(
-          this.buildEmail(newsletter, subject, recipient, apiHost, wwwHost),
+          this.buildEmail(
+            newsletter,
+            subject,
+            articles,
+            recipient,
+            apiHost,
+            wwwHost,
+          ),
         );
         summary.sent++;
       } catch (error) {
@@ -160,6 +201,7 @@ export class NewsletterSenderService {
   private buildEmail(
     newsletter: NewsletterEnum,
     subject: string,
+    articles: Article[],
     recipient: { subscriberUuid: string; email: string },
     apiHost: string,
     wwwHost: string,
@@ -174,11 +216,29 @@ export class NewsletterSenderService {
       to: [{ email: recipient.email, name: '' }],
       subject,
       htmlBody: [
-        '<p>test</p>',
+        `<p>${INTRO}</p>`,
+        '<ol>',
+        ...articles.map(
+          (a) =>
+            `<li><a href="${escapeHtml(a.url)}">${escapeHtml(a.title)}</a></li>`,
+        ),
+        '</ol>',
+        `<p>${SIGN_OFF.join('<br>')}</p>`,
         `<p style="font-size:12px;color:#666">You receive this because you subscribed to FYI ${label}. `,
         `<a href="${manageLink}" style="color:#666">Unsubscribe or manage your subscriptions</a>.</p>`,
       ].join(''),
-      plainTextContent: `test\n\n--\nYou receive this because you subscribed to FYI ${label}.\nUnsubscribe or manage your subscriptions: ${manageLink}\n`,
+      plainTextContent: [
+        INTRO,
+        '',
+        ...articles.map((a, i) => `${i + 1}. ${a.title}\n   ${a.url}`),
+        '',
+        ...SIGN_OFF,
+        '',
+        '--',
+        `You receive this because you subscribed to FYI ${label}.`,
+        `Unsubscribe or manage your subscriptions: ${manageLink}`,
+        '',
+      ].join('\n'),
       headers: {
         'List-Unsubscribe': `<${oneClickLink}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

@@ -2,6 +2,8 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NewsletterEnum } from '@readfyi/shared';
 import { EmailService, SendEmailParams } from 'src/email/email.service';
+import { Article } from 'src/sources/article-picker';
+import { ArticlesService } from 'src/sources/articles.service';
 import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 import { NewsletterSenderService } from './newsletter-sender.service';
 
@@ -19,6 +21,15 @@ const recipientsByNewsletter: Record<
   ],
 };
 
+const article = (n: number, title = `Article ${n}`): Article => ({
+  source: 'Source',
+  title,
+  url: `https://example.com/${n}`,
+  paywall: 'none',
+});
+
+const articles = Array.from({ length: 10 }, (_, i) => article(i + 1));
+
 const baseConfig: Record<string, string | undefined> = {
   API_HOST: 'https://api.readfyi.com',
   WWW_HOST: 'https://readfyi.com',
@@ -29,6 +40,7 @@ describe('NewsletterSenderService', () => {
   const originalEnv = process.env.NODE_ENV;
   let send: jest.Mock;
   let findActiveRecipients: jest.Mock;
+  let pickForNewsletter: jest.Mock;
   let config: Record<string, string | undefined>;
   let service: NewsletterSenderService;
 
@@ -45,10 +57,12 @@ describe('NewsletterSenderService', () => {
     findActiveRecipients = jest.fn((n: NewsletterEnum) =>
       Promise.resolve(recipientsByNewsletter[n]),
     );
+    pickForNewsletter = jest.fn().mockResolvedValue(articles);
     service = new NewsletterSenderService(
       { get: (key: string) => config[key] } as unknown as ConfigService,
       { findActiveRecipients } as unknown as SubscriptionsService,
       { send } as unknown as EmailService,
+      { pickForNewsletter } as unknown as ArticlesService,
     );
   });
 
@@ -128,12 +142,71 @@ describe('NewsletterSenderService', () => {
     }
   });
 
-  it('sends "test" with a personal unsubscribe link and one-click headers', async () => {
+  it('sends an ordered list of 10 linked articles between the intro and sign-off', async () => {
+    await service.sendNewsletters();
+    const email = sentEmails()[0];
+
+    expect(pickForNewsletter).toHaveBeenCalledWith(NewsletterEnum.Marketer, 10);
+    expect(email.htmlBody).toMatch(
+      /^<p>These are worth your read today:<\/p><ol>(<li><a href="[^"]+">[^<]+<\/a><\/li>){10}<\/ol><p>Best,<br>Halil from FYI<\/p>/,
+    );
+    expect(email.htmlBody).toContain(
+      '<li><a href="https://example.com/1">Article 1</a></li>',
+    );
+    expect(email.plainTextContent).toMatch(
+      /^These are worth your read today:\n\n1\. Article 1\n {3}https:\/\/example\.com\/1\n/,
+    );
+    expect(email.plainTextContent).toContain(
+      '10. Article 10\n   https://example.com/10\n\nBest,\nHalil from FYI\n',
+    );
+  });
+
+  it('picks the articles once per run, so every recipient gets the same issue', async () => {
+    await service.sendNewsletters();
+
+    expect(pickForNewsletter).toHaveBeenCalledTimes(1);
+    const [first, second] = sentEmails();
+    expect(first.htmlBody.split('<p style')[0]).toBe(
+      second.htmlBody.split('<p style')[0],
+    );
+  });
+
+  it('escapes HTML in article titles and URLs', async () => {
+    pickForNewsletter.mockResolvedValue([
+      {
+        ...article(1, 'Ads & <script>alert(1)</script>'),
+        url: 'https://example.com/?a=1&b="x"',
+      },
+    ]);
+    await service.sendNewsletters();
+    const { htmlBody } = sentEmails()[0];
+
+    expect(htmlBody).toContain(
+      '<a href="https://example.com/?a=1&amp;b=&quot;x&quot;">Ads &amp; &lt;script&gt;alert(1)&lt;/script&gt;</a>',
+    );
+    expect(htmlBody).not.toContain('<script>');
+  });
+
+  it('does not send when no articles could be found', async () => {
+    pickForNewsletter.mockResolvedValue([]);
+    const summaries = await service.sendNewsletters();
+
+    expect(send).not.toHaveBeenCalled();
+    expect(summaries[0]).toMatchObject({ recipients: 2, sent: 0, failed: 0 });
+  });
+
+  it('does not scrape when there are no subscribers', async () => {
+    findActiveRecipients.mockResolvedValue([]);
+    await service.sendNewsletters();
+
+    expect(pickForNewsletter).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('adds a personal unsubscribe link and one-click headers', async () => {
     await service.sendNewsletters();
     const email = sentEmails()[1];
 
-    expect(email.htmlBody).toContain('<p>test</p>');
-    expect(email.plainTextContent).toMatch(/^test\n/);
     expect(email.htmlBody).toContain(
       'https://readfyi.com/manage-subscriptions?token=uuid-2',
     );
