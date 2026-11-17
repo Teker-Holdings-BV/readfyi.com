@@ -16,7 +16,7 @@ import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
  * When the newsletter is sent, in NEWSLETTER_TIME_ZONE.
  * Daily at 09:00.
  */
-export const NEWSLETTER_CRON = '* * * * *';
+export const NEWSLETTER_CRON = '0 * * * *';
 export const NEWSLETTER_TIME_ZONE = 'Europe/Amsterdam';
 
 /**
@@ -32,7 +32,7 @@ export const SCHEDULED_NEWSLETTERS: readonly NewsletterEnum[] = [
 export const ARTICLES_PER_ISSUE = 10;
 
 const INTRO = 'These are worth your read today:';
-const SIGN_OFF = ['Best,', 'Halil from FYI'];
+const SIGN_OFF = 'Halil from FYI';
 
 const escapeHtml = (value: string) =>
   value
@@ -223,7 +223,7 @@ export class NewsletterSenderService {
             `<li><a href="${escapeHtml(a.url)}">${escapeHtml(a.title)}</a></li>`,
         ),
         '</ol>',
-        `<p>${SIGN_OFF.join('<br>')}</p>`,
+        `<p>${SIGN_OFF}</p>`,
         `<p style="font-size:12px;color:#666">You receive this because you subscribed to FYI ${label}. `,
         `<a href="${manageLink}" style="color:#666">Unsubscribe or manage your subscriptions</a>.</p>`,
       ].join(''),
@@ -232,7 +232,7 @@ export class NewsletterSenderService {
         '',
         ...articles.map((a, i) => `${i + 1}. ${a.title}\n   ${a.url}`),
         '',
-        ...SIGN_OFF,
+        SIGN_OFF,
         '',
         '--',
         `You receive this because you subscribed to FYI ${label}.`,
