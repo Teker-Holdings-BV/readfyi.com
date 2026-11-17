@@ -14,8 +14,17 @@ import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
  * When the newsletter is sent, in NEWSLETTER_TIME_ZONE.
  * Daily at 09:00.
  */
-export const NEWSLETTER_CRON = '0 9 * * *';
+export const NEWSLETTER_CRON = '0 * * * *';
 export const NEWSLETTER_TIME_ZONE = 'Europe/Amsterdam';
+
+/**
+ * Newsletters the scheduled run sends. Other newsletters still accept
+ * (double opt-in) subscriptions, but nobody receives them until they are
+ * added here.
+ */
+export const SCHEDULED_NEWSLETTERS: readonly NewsletterEnum[] = [
+  NewsletterEnum.Marketer,
+];
 
 /** SES errors that affect every send: stop the run instead of retrying. */
 const ACCOUNT_LEVEL_ERRORS = new Set([
@@ -82,7 +91,7 @@ export class NewsletterSenderService {
     const subject = formatNewsletterDate(new Date());
     const summaries: NewsletterRunSummary[] = [];
     try {
-      for (const newsletter of Object.values(NewsletterEnum)) {
+      for (const newsletter of SCHEDULED_NEWSLETTERS) {
         const summary = await this.sendNewsletter(
           newsletter,
           subject,

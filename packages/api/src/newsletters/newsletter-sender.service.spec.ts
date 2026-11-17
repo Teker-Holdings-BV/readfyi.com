@@ -9,13 +9,13 @@ const recipientsByNewsletter: Record<
   NewsletterEnum,
   { subscriberUuid: string; email: string }[]
 > = {
-  [NewsletterEnum.AI]: [
-    { subscriberUuid: 'uuid-1', email: 'one@example.com' },
-    { subscriberUuid: 'uuid-2', email: 'two@example.com' },
+  [NewsletterEnum.AI]: [{ subscriberUuid: 'uuid-1', email: 'one@example.com' }],
+  [NewsletterEnum.Founder]: [
+    { subscriberUuid: 'uuid-3', email: 'three@example.com' },
   ],
-  [NewsletterEnum.Founder]: [],
   [NewsletterEnum.Marketer]: [
     { subscriberUuid: 'uuid-1', email: 'one@example.com' },
+    { subscriberUuid: 'uuid-2', email: 'two@example.com' },
   ],
 };
 
@@ -67,7 +67,7 @@ describe('NewsletterSenderService', () => {
       cronTime: string;
       timeZone: string;
     };
-    expect(options.cronTime).toBe('0 9 * * *');
+    expect(options.cronTime).toBe('0 * * * *');
     expect(options.timeZone).toBe('Europe/Amsterdam');
   });
 
@@ -87,34 +87,36 @@ describe('NewsletterSenderService', () => {
     expect([...subjects]).toEqual(['Tuesday, November 17, 2026']);
   });
 
-  it('sends one email per active subscription, per newsletter', async () => {
+  it('sends one email per active subscription of the marketer newsletter', async () => {
     const summaries = await service.sendNewsletters();
 
-    expect(findActiveRecipients).toHaveBeenCalledTimes(
-      Object.values(NewsletterEnum).length,
-    );
+    expect(findActiveRecipients).toHaveBeenCalledTimes(1);
+    expect(findActiveRecipients).toHaveBeenCalledWith(NewsletterEnum.Marketer);
     expect(sentEmails().map((e) => [e.fromName, e.to[0].email])).toEqual([
-      ['FYI AI', 'one@example.com'],
-      ['FYI AI', 'two@example.com'],
       ['FYI Marketer', 'one@example.com'],
+      ['FYI Marketer', 'two@example.com'],
     ]);
     expect(summaries).toEqual([
-      { newsletter: 'ai', recipients: 2, sent: 2, failed: 0, stopped: false },
-      {
-        newsletter: 'founder',
-        recipients: 0,
-        sent: 0,
-        failed: 0,
-        stopped: false,
-      },
       {
         newsletter: 'marketer',
-        recipients: 1,
-        sent: 1,
+        recipients: 2,
+        sent: 2,
         failed: 0,
         stopped: false,
       },
     ]);
+  });
+
+  it('does not send the AI or founder newsletters', async () => {
+    await service.sendNewsletters();
+
+    expect(findActiveRecipients).not.toHaveBeenCalledWith(NewsletterEnum.AI);
+    expect(findActiveRecipients).not.toHaveBeenCalledWith(
+      NewsletterEnum.Founder,
+    );
+    expect(sentEmails().map((e) => e.to[0].email)).not.toContain(
+      'three@example.com',
+    );
   });
 
   it('never puts more than one recipient on an email', async () => {
@@ -140,7 +142,7 @@ describe('NewsletterSenderService', () => {
     );
     expect(email.headers).toEqual({
       'List-Unsubscribe':
-        '<https://api.readfyi.com/subscriptions/unsubscribe?token=uuid-2&newsletter=ai>',
+        '<https://api.readfyi.com/subscriptions/unsubscribe?token=uuid-2&newsletter=marketer>',
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
     });
   });
@@ -151,7 +153,7 @@ describe('NewsletterSenderService', () => {
     );
     const summaries = await service.sendNewsletters();
 
-    expect(send).toHaveBeenCalledTimes(3);
+    expect(send).toHaveBeenCalledTimes(2);
     expect(summaries[0]).toMatchObject({ sent: 1, failed: 1, stopped: false });
   });
 
@@ -194,6 +196,6 @@ describe('NewsletterSenderService', () => {
     // A later run works again.
     send.mockClear();
     await service.sendNewsletters();
-    expect(send).toHaveBeenCalledTimes(3);
+    expect(send).toHaveBeenCalledTimes(2);
   });
 });
