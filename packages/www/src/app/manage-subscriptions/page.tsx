@@ -5,6 +5,8 @@ import {
   NewsletterEnum,
   useSubscriptions,
 } from "@readfyi/shared";
+import { posthogLogger } from "@/lib/posthog-logger";
+import posthog from "posthog-js";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -25,6 +27,17 @@ export default function ManageSubscriptionsPage() {
 
   const subscriptions = useSubscriptions({ subscriberUuid: tokenParam });
 
+  useEffect(() => {
+    if (!tokenParam) return;
+
+    const previousSubscriberUuid = posthog.get_property("$user_id");
+    if (previousSubscriberUuid && previousSubscriberUuid !== tokenParam) {
+      posthog.reset();
+    }
+
+    posthog.identify(tokenParam);
+  }, [tokenParam]);
+
   const {
     register,
     handleSubmit,
@@ -40,7 +53,7 @@ export default function ManageSubscriptionsPage() {
   }, [subscriptions.subscriptions, reset]);
 
   const onSubmit = async (data: FormData) => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_HOST}/subscriptions`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_HOST}/subscriptions`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -50,6 +63,13 @@ export default function ManageSubscriptionsPage() {
         ...data,
       }),
     });
+
+    if (response.ok) {
+      posthog.capture("subscription_preferences_updated", {
+        newsletter_count: data.newsletters.length,
+      });
+      posthogLogger.subscriptionPreferencesUpdated(data.newsletters.length);
+    }
   };
 
   return (

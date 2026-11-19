@@ -2,6 +2,8 @@
 
 import { capitalizeFirst, NewsletterEnum } from "@readfyi/shared";
 import { TrackingEventEnum, useTracking } from "@teker-holdings-bv/tracking";
+import { posthogLogger } from "@/lib/posthog-logger";
+import posthog from "posthog-js";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -59,6 +61,10 @@ const SignupForm: React.FC<SignupFormProps> = ({ newsletter, title }) => {
       return;
     }
 
+    posthog.capture("newsletter_subscription_requested", {
+      newsletter_count: data.newsletters.length,
+    });
+    posthogLogger.newsletterSubscriptionRequested(data.newsletters.length);
     track(TrackingEventEnum.Lead);
     track(TrackingEventEnum.Subscribe);
   };
@@ -82,7 +88,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ newsletter, title }) => {
 
   const resendVerificationEmail = async () => {
     setVerificationResendAt(new Date());
-    await fetch(
+    const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_HOST}/subscribers/${formValues.email}/send-verification`,
       {
         method: "POST",
@@ -91,6 +97,11 @@ const SignupForm: React.FC<SignupFormProps> = ({ newsletter, title }) => {
         },
       }
     );
+
+    if (response.ok) {
+      posthog.capture("verification_email_resent");
+      posthogLogger.verificationEmailResent();
+    }
   };
 
   const newsletterLabel =
