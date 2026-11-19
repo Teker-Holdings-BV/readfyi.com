@@ -25,6 +25,10 @@ export class ArticlesService {
           this.logger.warn(`Feed "${result.source}" failed: ${result.error}`);
         }
       },
+      onDeadLink: (article) =>
+        this.logger.warn(
+          `Dropped broken link from "${article.source}": ${article.url}`,
+        ),
     });
     this.logger.log(
       `Picked ${articles.length} of ${count} articles for "${newsletter}".`,

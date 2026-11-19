@@ -64,6 +64,7 @@ async function main() {
           ? `  ✓ ${r.source}: ${r.total} items, ${r.recent} from the last ${days} days`
           : `  ✗ ${r.source}: ${r.error}`,
       ),
+    onDeadLink: (a) => console.error(`  ✗ broken link (${a.source}): ${a.url}`),
   });
 
   mkdirSync(dirname(OUTPUT_PATH), { recursive: true });

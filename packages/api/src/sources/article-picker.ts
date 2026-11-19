@@ -18,6 +18,8 @@ export interface PickArticlesOptions {
   days: number;
   /** Called once per feed with the fetch result, for progress logging. */
   onFeedResult?: (result: FeedResult) => void;
+  /** Called for each candidate dropped because its link doesn't work. */
+  onDeadLink?: (article: Article) => void;
 }
 
 export type FeedResult =
@@ -25,18 +27,26 @@ export type FeedResult =
   | { source: string; ok: false; error: string };
 
 const FETCH_TIMEOUT_MS = 15_000;
+const LINK_CHECK_TIMEOUT_MS = 10_000;
+const LINK_CHECK_CONCURRENCY = 10;
 const SNIPPET_LENGTH = 500;
 
 // Some sites reject requests without a browser-like user agent.
+const USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
+
 const parser = new Parser({
   timeout: FETCH_TIMEOUT_MS,
   headers: {
-    'User-Agent':
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
+    'User-Agent': USER_AGENT,
     Accept:
       'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
   },
 });
+
+// Statuses that bot protection (Cloudflare etc.) returns for pages that do
+// exist in a browser, so they don't mean the link is broken.
+const BOT_BLOCK_STATUSES = new Set([401, 403, 429]);
 
 function shuffle<T>(items: T[]): T[] {
   const result = [...items];
@@ -87,6 +97,74 @@ async function fetchSource(source: SourceConfig): Promise<Article[]> {
     });
 }
 
+async function requestStatus(url: string, method: 'HEAD' | 'GET') {
+  const res = await fetch(url, {
+    method,
+    redirect: 'follow',
+    headers: { 'User-Agent': USER_AGENT, Accept: 'text/html,*/*' },
+    signal: AbortSignal.timeout(LINK_CHECK_TIMEOUT_MS),
+  });
+  // Only the status is needed; don't download the page.
+  await res.body?.cancel();
+  return res.status;
+}
+
+/**
+ * Whether the URL loads (after redirects). 404s, 5xx errors, timeouts and
+ * network errors count as broken. Bot-protection responses (401/403/429)
+ * count as working, because the page exists for a human reader.
+ */
+export async function isLinkWorking(url: string): Promise<boolean> {
+  let status: number | undefined;
+  try {
+    status = await requestStatus(url, 'HEAD');
+  } catch {
+    // Some servers drop HEAD requests; retry with GET below.
+  }
+  // Some servers don't support HEAD or answer it wrongly; confirm with GET.
+  if (status === undefined || status >= 400) {
+    try {
+      status = await requestStatus(url, 'GET');
+    } catch {
+      return false;
+    }
+  }
+  return status < 400 || BOT_BLOCK_STATUSES.has(status);
+}
+
+/**
+ * Removes articles whose links don't work from each pool, checking links in
+ * parallel (at most `LINK_CHECK_CONCURRENCY` at a time).
+ */
+async function keepWorkingLinks(
+  pools: Article[][],
+  onDeadLink?: (article: Article) => void,
+): Promise<Article[][]> {
+  const urls = [...new Set(pools.flat().map((a) => a.url))];
+  const working = new Set<string>();
+  let next = 0;
+  const worker = async () => {
+    while (next < urls.length) {
+      const url = urls[next++];
+      if (await isLinkWorking(url)) working.add(url);
+    }
+  };
+  await Promise.all(
+    Array.from(
+      { length: Math.min(LINK_CHECK_CONCURRENCY, urls.length) },
+      worker,
+    ),
+  );
+
+  return pools.map((pool) =>
+    pool.filter((article) => {
+      if (working.has(article.url)) return true;
+      onDeadLink?.(article);
+      return false;
+    }),
+  );
+}
+
 /**
  * Round-robin over shuffled sources: each round takes one random article from
  * every source that still has articles left, until `count` is reached.
@@ -119,10 +197,14 @@ function pickRoundRobin(
  * (news sites) don't crowd out individual authors. Articles from the last
  * `days` days are preferred; if that doesn't yield `count` articles, older
  * ones fill the gap. Feeds that fail to load are skipped.
+ *
+ * Every candidate's link is checked before picking, and broken ones (404 etc.)
+ * are dropped. Older candidates are only checked when the recent ones aren't
+ * enough.
  */
 export async function pickArticles(
   allSources: SourceConfig[],
-  { count, days, onFeedResult }: PickArticlesOptions,
+  { count, days, onFeedResult, onDeadLink }: PickArticlesOptions,
 ): Promise<Article[]> {
   const sources = allSources.filter((s) => s.enabled && s.paywall === 'none');
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
@@ -158,7 +240,17 @@ export async function pickArticles(
   });
 
   const picked: Article[] = [];
-  pickRoundRobin(recentPools, count, picked);
-  if (picked.length < count) pickRoundRobin(olderPools, count, picked);
+  pickRoundRobin(
+    await keepWorkingLinks(recentPools, onDeadLink),
+    count,
+    picked,
+  );
+  if (picked.length < count) {
+    pickRoundRobin(
+      await keepWorkingLinks(olderPools, onDeadLink),
+      count,
+      picked,
+    );
+  }
   return picked;
 }
