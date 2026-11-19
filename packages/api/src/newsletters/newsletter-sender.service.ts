@@ -14,9 +14,9 @@ import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 
 /**
  * When the newsletter is sent, in NEWSLETTER_TIME_ZONE.
- * Daily at 09:00.
+ * Daily at 12:00.
  */
-export const NEWSLETTER_CRON = '0 * * * *';
+export const NEWSLETTER_CRON = '0 12 * * *';
 export const NEWSLETTER_TIME_ZONE = 'Europe/Amsterdam';
 
 /**
@@ -188,7 +188,7 @@ export class NewsletterSenderService {
           break;
         }
       }
-      // Stay below the SES max send rate (1/s in the sandbox).
+      // Stay below the SES max send rate (14/s on this account).
       await sleep(Math.max(0, delayMs - (Date.now() - startedAt)));
     }
 
@@ -248,6 +248,6 @@ export class NewsletterSenderService {
 
   private sendRatePerSecond(): number {
     const rate = Number(this.config.get<string>('NEWSLETTER_SEND_RATE'));
-    return Number.isFinite(rate) && rate > 0 ? rate : 1;
+    return Number.isFinite(rate) && rate > 0 ? rate : 14;
   }
 }
