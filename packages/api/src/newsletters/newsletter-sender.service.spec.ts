@@ -101,16 +101,31 @@ describe('NewsletterSenderService', () => {
     expect([...subjects]).toEqual(['Tuesday, November 17, 2026']);
   });
 
-  it('sends one email per active subscription of the marketer newsletter', async () => {
+  it('sends every newsletter to its own active subscribers', async () => {
     const summaries = await service.sendNewsletters();
 
-    expect(findActiveRecipients).toHaveBeenCalledTimes(1);
-    expect(findActiveRecipients).toHaveBeenCalledWith(NewsletterEnum.Marketer);
+    expect(
+      findActiveRecipients.mock.calls.map(([n]: [NewsletterEnum]) => n),
+    ).toEqual([
+      NewsletterEnum.AI,
+      NewsletterEnum.Founder,
+      NewsletterEnum.Marketer,
+    ]);
     expect(sentEmails().map((e) => [e.fromName, e.to[0].email])).toEqual([
+      ['FYI AI', 'one@example.com'],
+      ['FYI Founder', 'three@example.com'],
       ['FYI Marketer', 'one@example.com'],
       ['FYI Marketer', 'two@example.com'],
     ]);
     expect(summaries).toEqual([
+      { newsletter: 'ai', recipients: 1, sent: 1, failed: 0, stopped: false },
+      {
+        newsletter: 'founder',
+        recipients: 1,
+        sent: 1,
+        failed: 0,
+        stopped: false,
+      },
       {
         newsletter: 'marketer',
         recipients: 2,
@@ -121,16 +136,12 @@ describe('NewsletterSenderService', () => {
     ]);
   });
 
-  it('does not send the AI or founder newsletters', async () => {
+  it("picks each newsletter's articles from its own sources", async () => {
     await service.sendNewsletters();
 
-    expect(findActiveRecipients).not.toHaveBeenCalledWith(NewsletterEnum.AI);
-    expect(findActiveRecipients).not.toHaveBeenCalledWith(
-      NewsletterEnum.Founder,
-    );
-    expect(sentEmails().map((e) => e.to[0].email)).not.toContain(
-      'three@example.com',
-    );
+    for (const newsletter of Object.values(NewsletterEnum)) {
+      expect(pickForNewsletter).toHaveBeenCalledWith(newsletter, 10);
+    }
   });
 
   it('never puts more than one recipient on an email', async () => {
@@ -161,11 +172,13 @@ describe('NewsletterSenderService', () => {
     );
   });
 
-  it('picks the articles once per run, so every recipient gets the same issue', async () => {
+  it('picks the articles once per newsletter, so every recipient gets the same issue', async () => {
     await service.sendNewsletters();
 
-    expect(pickForNewsletter).toHaveBeenCalledTimes(1);
-    const [first, second] = sentEmails();
+    expect(pickForNewsletter).toHaveBeenCalledTimes(3);
+    const [first, second] = sentEmails().filter(
+      (e) => e.fromName === 'FYI Marketer',
+    );
     expect(first.htmlBody.split('<p style')[0]).toBe(
       second.htmlBody.split('<p style')[0],
     );
@@ -192,7 +205,24 @@ describe('NewsletterSenderService', () => {
     const summaries = await service.sendNewsletters();
 
     expect(send).not.toHaveBeenCalled();
-    expect(summaries[0]).toMatchObject({ recipients: 2, sent: 0, failed: 0 });
+    expect(summaries.map((s) => [s.recipients, s.sent])).toEqual([
+      [1, 0],
+      [1, 0],
+      [2, 0],
+    ]);
+  });
+
+  it('still sends the other newsletters when one has no articles', async () => {
+    pickForNewsletter.mockImplementation((n: NewsletterEnum) =>
+      Promise.resolve(n === NewsletterEnum.AI ? [] : articles),
+    );
+    await service.sendNewsletters();
+
+    expect(sentEmails().map((e) => e.fromName)).toEqual([
+      'FYI Founder',
+      'FYI Marketer',
+      'FYI Marketer',
+    ]);
   });
 
   it('does not scrape when there are no subscribers', async () => {
@@ -205,7 +235,9 @@ describe('NewsletterSenderService', () => {
 
   it('adds a personal unsubscribe link and one-click headers', async () => {
     await service.sendNewsletters();
-    const email = sentEmails()[1];
+    const email = sentEmails().find(
+      (e) => e.to[0].email === 'two@example.com',
+    )!;
 
     expect(email.htmlBody).toContain(
       'https://readfyi.com/manage-subscriptions?token=uuid-2',
@@ -226,8 +258,9 @@ describe('NewsletterSenderService', () => {
     );
     const summaries = await service.sendNewsletters();
 
-    expect(send).toHaveBeenCalledTimes(2);
-    expect(summaries[0]).toMatchObject({ sent: 1, failed: 1, stopped: false });
+    expect(send).toHaveBeenCalledTimes(4);
+    expect(summaries[0]).toMatchObject({ sent: 0, failed: 1, stopped: false });
+    expect(summaries[2]).toMatchObject({ sent: 2, failed: 0, stopped: false });
   });
 
   it.each(['SendingPausedException', 'AccountSuspendedException'])(
@@ -269,6 +302,6 @@ describe('NewsletterSenderService', () => {
     // A later run works again.
     send.mockClear();
     await service.sendNewsletters();
-    expect(send).toHaveBeenCalledTimes(2);
+    expect(send).toHaveBeenCalledTimes(4);
   });
 });

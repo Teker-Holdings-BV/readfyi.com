@@ -1,5 +1,5 @@
 import Parser from 'rss-parser';
-import { SourceConfig } from './sources.config';
+import { SourceConfig } from './sources';
 
 export interface Article {
   source: string;

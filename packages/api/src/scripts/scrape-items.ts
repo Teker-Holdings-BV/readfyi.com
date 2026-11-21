@@ -1,8 +1,8 @@
 /**
- * Picks random recent articles from the Marketer newsletter sources.
+ * Picks random recent articles from a newsletter's sources.
  *
  * Usage:
- *   npm run scrape:items -w packages/api -- [--count 10] [--days 2]
+ *   npm run scrape:items -w packages/api -- [--newsletter marketer] [--count 10] [--days 2]
  *
  * See `pickArticles` for how articles are sampled. The scheduled newsletter
  * uses the same logic.
@@ -13,7 +13,8 @@
 import { mkdirSync, writeFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { Article, pickArticles } from '../sources/article-picker';
-import { MARKETER_SOURCES } from '../sources/sources.config';
+import { NewsletterEnum } from '@readfyi/shared';
+import { SOURCES_BY_NEWSLETTER } from '../sources/sources';
 
 // Same depth from src/scripts and dist/scripts: <repo>/packages/api/{src,dist}/scripts
 const OUTPUT_PATH = resolve(__dirname, '../../../../data/items.csv');
@@ -37,7 +38,17 @@ function parseArgs(argv: string[]) {
     }
     return value;
   };
-  return { count: get('--count', 10), days: get('--days', 2) };
+  const i = argv.indexOf('--newsletter');
+  const newsletter = i >= 0 ? argv[i + 1] : NewsletterEnum.Marketer;
+  const newsletters = Object.values(NewsletterEnum) as string[];
+  if (!newsletters.includes(newsletter)) {
+    throw new Error(`--newsletter must be one of: ${newsletters.join(', ')}`);
+  }
+  return {
+    newsletter: newsletter as NewsletterEnum,
+    count: get('--count', 10),
+    days: get('--days', 2),
+  };
 }
 
 /** RFC 4180: quote every field and double any quotes inside it. */
@@ -52,10 +63,10 @@ function toCsv(items: Article[]): string {
 }
 
 async function main() {
-  const { count, days } = parseArgs(process.argv.slice(2));
-  console.error('Fetching feeds…');
+  const { newsletter, count, days } = parseArgs(process.argv.slice(2));
+  console.error(`Fetching feeds for "${newsletter}"…`);
 
-  const picked = await pickArticles(MARKETER_SOURCES, {
+  const picked = await pickArticles(SOURCES_BY_NEWSLETTER[newsletter], {
     count,
     days,
     onFeedResult: (r) =>

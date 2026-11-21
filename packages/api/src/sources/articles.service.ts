@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NewsletterEnum } from '@readfyi/shared';
 import { Article, pickArticles } from './article-picker';
-import { SOURCES_BY_NEWSLETTER } from './sources.config';
+import { SOURCES_BY_NEWSLETTER } from './sources';
 
 @Injectable()
 export class ArticlesService {

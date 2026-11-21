@@ -1,35 +1,11 @@
-import { NewsletterEnum } from '@readfyi/shared';
+import type { SourceConfig } from './sources';
 
 /**
- * Seed list of hand-picked content sources per newsletter.
- *
- * v1 curation is random, so quality comes from this list. Sample in two
- * steps so high-volume feeds (news sites, PPC Land) don't crowd out
- * individual authors:
- *   1. pick sources at random, then a recent item from each
- *   2. fetch the full article before summarizing (see `paywall`)
+ * Hand-picked content sources for the Marketer newsletter.
  *
  * Every feed below was checked on 2026-11-12: it returned a valid RSS/Atom
  * feed with posts from 2026.
  */
-
-export interface SourceConfig {
-  name: string;
-  /** Person or publication behind the source, for attribution. */
-  author?: string;
-  feedUrl: string;
-  homepageUrl: string;
-  /**
-   * 'none': full article is freely readable.
-   * 'partial': some posts are paywalled or the feed only carries a teaser;
-   * skip the item or use it as a quick link when no full text is available.
-   */
-  paywall: 'none' | 'partial';
-  /** Rough posting frequency, used to sanity-check the "recent items" window. */
-  cadence: 'daily' | 'weekly' | 'monthly' | 'irregular';
-  enabled: boolean;
-  notes?: string;
-}
 
 export const MARKETER_SOURCES: SourceConfig[] = [
   // --- B2B / SaaS ---
@@ -737,9 +713,3 @@ export const MARKETER_SOURCES_BACKLOG: {
   { name: 'Ad Age', url: 'https://adage.com', reason: 'Blocked (403)' },
   { name: 'CXL', url: 'https://cxl.com/blog', reason: 'Blocked (403)' },
 ];
-
-export const SOURCES_BY_NEWSLETTER: Partial<
-  Record<NewsletterEnum, SourceConfig[]>
-> = {
-  [NewsletterEnum.Marketer]: MARKETER_SOURCES,
-};

@@ -19,15 +19,6 @@ import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 export const NEWSLETTER_CRON = '0 12 * * *';
 export const NEWSLETTER_TIME_ZONE = 'Europe/Amsterdam';
 
-/**
- * Newsletters the scheduled run sends. Other newsletters still accept
- * (double opt-in) subscriptions, but nobody receives them until they are
- * added here.
- */
-export const SCHEDULED_NEWSLETTERS: readonly NewsletterEnum[] = [
-  NewsletterEnum.Marketer,
-];
-
 /** Number of articles in each newsletter issue. */
 export const ARTICLES_PER_ISSUE = 10;
 
@@ -108,7 +99,7 @@ export class NewsletterSenderService {
     const subject = formatNewsletterDate(new Date());
     const summaries: NewsletterRunSummary[] = [];
     try {
-      for (const newsletter of SCHEDULED_NEWSLETTERS) {
+      for (const newsletter of Object.values(NewsletterEnum)) {
         const summary = await this.sendNewsletter(
           newsletter,
           subject,

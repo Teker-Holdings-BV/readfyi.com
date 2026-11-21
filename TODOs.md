@@ -5,3 +5,4 @@ TODOs:
 <!-- - add ad budget -->
 <!-- - maximum send rate: 14 -->
 - add posthog recording
+- when updating subscription it should give feedback
