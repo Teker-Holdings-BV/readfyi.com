@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // Token-driven utility pages with no value in search results.
-      disallow: ["/subscribers/", "/manage-subscriptions"],
+      disallow: ["/subscribers/", "/manage-subscriptions", "/offers/", "/d/"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,

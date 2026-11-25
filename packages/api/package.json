@@ -13,7 +13,7 @@
     "deploy:production": "npm run publish:production && gcloud run deploy api --image gcr.io/readfyi-com/api --project readfyi-com --region europe-west4",
     "start": "nest start",
     "start:dev": "nest start --watch --debug",
-    "start:dev:db": "docker compose up --build db",
+    "start:dev:db": "docker compose up --force-recreate db",
     "start:dev:all": "concurrently \"npm run start:dev:db\" \"npm run start:dev\"",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",

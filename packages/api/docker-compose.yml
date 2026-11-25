@@ -7,3 +7,6 @@ services:
       - .env
     ports:
       - '5432:5432' # Map PostgreSQL port to the host machine
+    # Dev only: keep Postgres data in memory so every start begins with an empty DB.
+    tmpfs:
+      - /var/lib/postgresql/data
