@@ -50,9 +50,9 @@ function ClaudeActuallyOffer({
           height={400}
         />
         <div>
-          <h2 className={styles.offerTitle}>Get useful answers from Claude on the first try</h2>
+          <h2 className={styles.offerTitle}>Get the answer you need from Claude on the first try</h2>
           <p className={styles.lead}>
-            A plain-English guide for professionals who want AI to take busywork
+            A guide for professionals who want AI to take busywork
             off their plate.
           </p>
           <p className={styles.facts}>32 pages · 15 chapters · PDF</p>
@@ -77,9 +77,17 @@ function ClaudeActuallyOffer({
           No thanks
         </Link>
       </div>
-      <p className={styles.guarantee}>
-        Not useful? Reply to any of our emails within 30 days and get your $1 back.
-      </p>
+      <div className={styles.guarantee}>
+        <svg className={styles.guaranteeIcon} viewBox="0 0 24 24" fill="none" strokeWidth="2" aria-hidden>
+          <path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z" strokeLinejoin="round" />
+          <path d="M8.5 12l2.5 2.5 4.5-5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <p>
+          <strong>30-day money-back guarantee</strong>
+          <br />
+          Not useful? Reply to any of our emails for a full refund.
+        </p>
+      </div>
       <p className={styles.fineprint}>
         Secure checkout by Stripe · Independent guide, not affiliated with Anthropic
       </p>
