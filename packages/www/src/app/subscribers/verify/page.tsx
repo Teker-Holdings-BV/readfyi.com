@@ -7,7 +7,7 @@ import styles from "./verify.module.css";
 const PAYMENT_LINK = process.env.NEXT_PUBLIC_CLAUDE_ACTUALLY_PAYMENT_LINK;
 
 // How long the confirmation stands on its own before the offer appears.
-const OFFER_DELAY_MS = 1000;
+const OFFER_DELAY_MS = 500;
 
 type Status = "loading" | "confirmed" | "error";
 
