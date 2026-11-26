@@ -6,3 +6,7 @@ TODOs:
 <!-- - maximum send rate: 14 -->
 - add posthog recording
 - when updating subscription it should give feedback
+
+- No DMARC record
+- All emails should send a plain-text alternative
+- One reminder (Did you still want FYI Marketer?)

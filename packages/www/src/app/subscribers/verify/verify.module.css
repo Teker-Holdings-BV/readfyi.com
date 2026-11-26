@@ -1,0 +1,215 @@
+/* Step 1: the confirmation gets its own moment before anything else appears. */
+.confirmed {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 600ms ease, opacity 600ms ease;
+  transform-origin: left center;
+}
+
+/* Step 2: confirmation shrinks into a header line above the offer. */
+.confirmedCompact {
+  transform: scale(0.6);
+  opacity: 0.85;
+  margin-bottom: -1rem;
+}
+
+.check {
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.checkCircle {
+  stroke: #ffeb3b;
+  stroke-dasharray: 160;
+  stroke-dashoffset: 160;
+  animation: draw 600ms ease-out forwards;
+}
+
+.checkMark {
+  stroke: #ffeb3b;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: draw 350ms ease-out 500ms forwards;
+}
+
+.subline {
+  color: #999;
+}
+
+/* Offer: one compact card. Size ladder: headline > button > body > fine print. */
+.offer {
+  max-width: 36rem;
+  margin-top: 3rem;
+  padding: 2.5rem;
+  background: #111;
+  border: 1px solid #262626;
+  border-radius: 8px;
+  animation: rise 700ms ease-out both;
+}
+
+.eyebrow {
+  color: #ffeb3b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1.25rem;
+}
+
+.intro {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-bottom: 2.25rem;
+}
+
+/* Front cover only (cropped from the eCover). Border + shadow lift the dark cover off the dark card. */
+.cover {
+  flex: none;
+  width: 5.5rem;
+  height: auto;
+  border-radius: 2px 4px 4px 2px;
+  border: 1px solid #333;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+}
+
+.offerTitle {
+  font-size: 1.6rem;
+  line-height: 1.15;
+  /* Override the global h2 top margin so the text block lines up with the cover. */
+  margin: 0 0 0.75rem;
+}
+
+.lead {
+  color: #bbb;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.facts {
+  color: #777;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.inside {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2.5rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #bbb;
+}
+
+.inside li {
+  position: relative;
+  padding-left: 1.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.inside li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #ffeb3b;
+  font-weight: 700;
+}
+
+.inside strong {
+  color: #ededed;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.cta {
+  color: #000;
+  background: #ffeb3b;
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 0.7rem 1.4rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+}
+
+.decline {
+  color: #888;
+  font-size: 0.95rem;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.guarantee {
+  color: #ccc;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.fineprint {
+  color: #666;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+/* Phones: button full width, decline link centered under it. */
+@media (max-width: 480px) {
+  .offer {
+    padding: 1.5rem;
+  }
+
+  .intro {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.25rem;
+  }
+
+  .cover {
+    width: 4.5rem;
+  }
+
+  .offerTitle {
+    font-size: 1.35rem;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirmed,
+  .checkCircle,
+  .checkMark,
+  .offer {
+    animation: none;
+    transition: none;
+    stroke-dashoffset: 0;
+  }
+}
