@@ -1,0 +1,50 @@
+.root {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+}
+
+/* Holds the count's place while it loads, so the line does not jump. */
+.placeholder {
+  display: inline-block;
+  width: 3.5ch;
+  height: 0.85em;
+  border-radius: 999px;
+  vertical-align: -0.05em;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.22) 50%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.count {
+  display: inline-block;
+  font-weight: 700;
+  /* Same width for every digit, so the line keeps still while counting up. */
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.count[data-done="true"] {
+  animation: pop 0.35s ease-out;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@keyframes pop {
+  50% { transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .placeholder,
+  .count[data-done="true"] {
+    animation: none;
+  }
+}

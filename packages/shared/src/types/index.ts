@@ -4,3 +4,4 @@ export * from "./subscriber";
 export * from "./subscription";
 export * from "./utils";
 export * from "./issue";
+export * from "./metrics";

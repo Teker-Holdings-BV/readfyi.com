@@ -10,6 +10,7 @@ import { EmailModule } from './email/email.module';
 import { IpModule } from './ip/ip.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { NewslettersModule } from './newsletters/newsletters.module';
+import { MetricsModule } from './metrics/metrics.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { NewslettersModule } from './newsletters/newsletters.module';
     EmailModule,
     IpModule,
     NewslettersModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

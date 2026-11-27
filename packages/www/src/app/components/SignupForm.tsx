@@ -7,6 +7,7 @@ import posthog from "posthog-js";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import ReaderCount from "./ReaderCount";
 
 type FormData = {
   email: string;
@@ -207,7 +208,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ newsletter, title }) => {
             </div>
           </form>
           <p style={{ fontSize: ".9rem", marginTop: ".5rem" }}>
-            Join other readers for <u>1 email a day</u>
+            <ReaderCount /> for <u>1 email a day</u>
           </p>
         </>
       ) : (

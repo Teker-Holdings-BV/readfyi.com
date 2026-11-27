@@ -51,6 +51,11 @@ export class SubscriptionsService {
     }));
   }
 
+  /** Every subscription row ever created, soft-deleted ones included. */
+  async countAll(): Promise<number> {
+    return this.subscriptionsRepository.count({ withDeleted: true });
+  }
+
   async findBySubscriberUuid(
     subscriberUuid: string,
   ): Promise<SubscriptionsEntity[]> {
