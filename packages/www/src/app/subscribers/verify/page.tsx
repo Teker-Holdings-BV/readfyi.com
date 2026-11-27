@@ -45,6 +45,7 @@ function ClaudeActuallyOffer({
   paymentLink: string;
   subscriberUuid: string | null;
 }) {
+  const { track } = useTracking();
   const url = new URL(paymentLink);
   // Ties the Stripe payment back to the subscriber (visible on the payment in Stripe).
   if (subscriberUuid) url.searchParams.set("client_reference_id", subscriberUuid);
@@ -82,7 +83,14 @@ function ClaudeActuallyOffer({
         </li>
       </ul>
       <div className={styles.actions}>
-        <a className={styles.cta} href={url.toString()}>
+        {/* New tab: this page stays open, so track() can finish its CAPI request. */}
+        <a
+          className={styles.cta}
+          href={url.toString()}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => void track(TrackingEventEnum.InitiateCheckout)}
+        >
           Get the PDF for $1
         </a>
         <Link className={styles.decline} href="/">

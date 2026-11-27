@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@readfyi/shared": "*",
-    "@teker-holdings-bv/tracking": "1.0.13",
+    "@teker-holdings-bv/tracking": "1.0.14",
     "i18next": "^25.7.3",
     "next": "16.1.1",
     "posthog-js": "^1.451.3",

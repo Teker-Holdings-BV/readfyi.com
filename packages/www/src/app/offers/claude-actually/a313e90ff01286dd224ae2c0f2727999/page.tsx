@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import TrackPurchase from "./TrackPurchase";
 
 // Unlisted page: Stripe redirects here after a successful payment.
 export const metadata: Metadata = {
@@ -11,6 +12,7 @@ const DOWNLOAD_PATH = "/d/ca897aa2bfd2fd4be8d84057/claude-actually-compressed.pd
 export default function ClaudeActuallyThanksPage() {
   return (
     <>
+      <TrackPurchase />
       <h1>Thank you!</h1>
       <p>Your copy of <strong>Claude, Actually</strong> is ready.</p>
       <p>
