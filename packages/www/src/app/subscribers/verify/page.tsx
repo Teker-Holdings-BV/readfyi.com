@@ -2,6 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { TrackingEventEnum, useTracking } from "@teker-holdings-bv/tracking";
+import type { MetaClickIds } from "@readfyi/shared";
 import styles from "./verify.module.css";
 
 const PAYMENT_LINK = process.env.NEXT_PUBLIC_CLAUDE_ACTUALLY_PAYMENT_LINK;
@@ -10,6 +12,16 @@ const PAYMENT_LINK = process.env.NEXT_PUBLIC_CLAUDE_ACTUALLY_PAYMENT_LINK;
 const OFFER_DELAY_MS = 500;
 
 type Status = "loading" | "confirmed" | "error";
+
+/**
+ * The link is usually opened in an email app's browser, without the Meta
+ * cookies from signup. track() reads them from the cookies, so restore them.
+ */
+const restoreMetaCookies = ({ fbc, fbp }: MetaClickIds) => {
+  const maxAge = 90 * 24 * 60 * 60; // Meta's own cookie lifetime
+  if (fbc) document.cookie = `_fbc=${fbc}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  if (fbp) document.cookie = `_fbp=${fbp}; path=/; max-age=${maxAge}; SameSite=Lax`;
+};
 
 function ConfirmedHeader({ compact }: { compact: boolean }) {
   return (
@@ -98,6 +110,7 @@ function ClaudeActuallyOffer({
 function VerifySubscriberPageContent() {
   const [status, setStatus] = useState<Status>("loading");
   const [showOffer, setShowOffer] = useState(false);
+  const { track } = useTracking();
 
   const searchParams =
     typeof window !== "undefined"
@@ -118,11 +131,21 @@ function VerifySubscriberPageContent() {
             },
           }
         );
-        setStatus(res.ok ? "confirmed" : "error");
+        if (!res.ok) return setStatus("error");
+
+        // Empty when the subscription was already confirmed: don't track twice.
+        const body = await res.text();
+        if (body) {
+          restoreMetaCookies(JSON.parse(body) as MetaClickIds);
+          track(TrackingEventEnum.Subscribe);
+        }
+        setStatus("confirmed");
       } catch {
         setStatus("error");
       }
     })();
+    // track() is a new function on every render: verify once per token.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tokenParam]);
 
   useEffect(() => {

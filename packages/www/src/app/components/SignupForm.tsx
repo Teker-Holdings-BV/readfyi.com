@@ -14,6 +14,18 @@ type FormData = {
   newsletters: string[];
 };
 
+const getCookie = (name: string) =>
+  document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`))?.[2];
+
+/** Stored with the subscriber and handed back on verify (see verify page). */
+const getMetaClickIds = () => {
+  const fbclid = new URLSearchParams(window.location.search).get("fbclid");
+  return {
+    fbc: getCookie("_fbc") ?? (fbclid ? `fb.1.${Date.now()}.${fbclid}` : undefined),
+    fbp: getCookie("_fbp"),
+  };
+};
+
 interface SignupFormProps {
   newsletter?: NewsletterEnum;
   /** Overrides the newsletter name in the header (role landing pages). */
@@ -47,7 +59,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ newsletter, title }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, ...getMetaClickIds() }),
       }
     );
 
@@ -66,8 +78,8 @@ const SignupForm: React.FC<SignupFormProps> = ({ newsletter, title }) => {
       newsletter_count: data.newsletters.length,
     });
     posthogLogger.newsletterSubscriptionRequested(data.newsletters.length);
+    // Subscribe is tracked on the verify page, after the double opt-in.
     track(TrackingEventEnum.Lead);
-    track(TrackingEventEnum.Subscribe);
   };
 
   const [verificationResendAt, setVerificationResendAt] = useState<Date>();

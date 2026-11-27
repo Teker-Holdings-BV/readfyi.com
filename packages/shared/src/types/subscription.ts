@@ -6,7 +6,13 @@ export interface SubscriptionProps extends BaseEntityProps {
   newsletter: NewsletterEnum;
 }
 
-export interface CreateSubscriptionsRequest {
+/** Meta click (`_fbc`) and browser (`_fbp`) IDs from the signup browser. */
+export interface MetaClickIds {
+  fbc?: string;
+  fbp?: string;
+}
+
+export interface CreateSubscriptionsRequest extends MetaClickIds {
   email: string;
   newsletters: NewsletterEnum[];
 }

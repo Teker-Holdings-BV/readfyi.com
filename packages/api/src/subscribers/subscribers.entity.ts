@@ -12,6 +12,14 @@ export class SubscribersEntity extends BaseEntity implements SubscriberProps {
   @Column({ type: 'timestamptz', nullable: true })
   verifiedAt?: Date;
 
+  // Meta IDs from signup, handed back on verify so the Subscribe event can be
+  // tracked from the email app's browser, which does not have them.
+  @Column({ type: 'varchar', nullable: true })
+  fbc?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  fbp?: string;
+
   @OneToMany(
     () => SubscriptionsEntity,
     (subscription) => subscription.subscriber,

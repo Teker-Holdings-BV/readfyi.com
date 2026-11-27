@@ -28,11 +28,14 @@ export class SubscribersController {
   async verify(@Param('uuid') uuid: SubscriberProps['uuid']) {
     const subscriber = await this.subscribersService.findOne(uuid);
 
+    // Already verified: nothing returned, so the page does not track again.
     if (subscriber?.verifiedAt) return;
 
-    return this.subscribersService.updateOne(uuid, {
+    const { fbc, fbp } = await this.subscribersService.updateOne(uuid, {
       verifiedAt: new Date(),
     });
+
+    return { fbc, fbp };
   }
 
   @Post('/:email/send-verification')

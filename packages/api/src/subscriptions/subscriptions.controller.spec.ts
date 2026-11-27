@@ -8,15 +8,17 @@ import { EmailService } from 'src/email/email.service';
 describe('SubscriptionsController.subscribe', () => {
   let isValid: jest.Mock;
   let findOneOrCreate: jest.Mock;
+  let updateOne: jest.Mock;
   let createSubscription: jest.Mock;
   let controller: SubscriptionsController;
 
   beforeEach(() => {
     isValid = jest.fn().mockResolvedValue(true);
     findOneOrCreate = jest.fn().mockResolvedValue({ uuid: 'sub-1' });
+    updateOne = jest.fn().mockResolvedValue(undefined);
     createSubscription = jest.fn().mockResolvedValue(undefined);
     controller = new SubscriptionsController(
-      { findOneOrCreate } as unknown as SubscribersService,
+      { findOneOrCreate, updateOne } as unknown as SubscribersService,
       {
         findOneOrCreate: createSubscription,
       } as unknown as SubscriptionsService,
@@ -36,6 +38,35 @@ describe('SubscriptionsController.subscribe', () => {
       subscriberUuid: 'sub-1',
       newsletter: NewsletterEnum.Marketer,
     });
+  });
+
+  it('stores the Meta click IDs until the double opt-in', async () => {
+    await controller.subscribe({
+      email: 'reader@gmail.com',
+      newsletters: [NewsletterEnum.Marketer],
+      fbc: 'fb.1.1700000000000.abc',
+      fbp: 'fb.1.1700000000000.123',
+    });
+
+    expect(updateOne).toHaveBeenCalledWith('sub-1', {
+      fbc: 'fb.1.1700000000000.abc',
+      fbp: 'fb.1.1700000000000.123',
+    });
+  });
+
+  it('keeps the click IDs of verified subscribers', async () => {
+    findOneOrCreate.mockResolvedValue({
+      uuid: 'sub-1',
+      verifiedAt: new Date(),
+    });
+
+    await controller.subscribe({
+      email: 'reader@gmail.com',
+      newsletters: [NewsletterEnum.Marketer],
+      fbc: 'fb.1.1700000000000.abc',
+    });
+
+    expect(updateOne).not.toHaveBeenCalled();
   });
 
   it('rejects invalid addresses before creating a subscriber', async () => {

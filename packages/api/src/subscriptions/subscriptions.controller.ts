@@ -72,6 +72,14 @@ export class SubscriptionsController {
 
     const subscriber = await this.subscribersService.findOneOrCreate(email);
 
+    // Kept until the double opt-in, where Subscribe is tracked.
+    if (!subscriber.verifiedAt && (body.fbc || body.fbp)) {
+      await this.subscribersService.updateOne(subscriber.uuid, {
+        fbc: body.fbc,
+        fbp: body.fbp,
+      });
+    }
+
     for (const newsletter of body.newsletters) {
       await this.subscriptionsService.findOneOrCreate({
         subscriberUuid: subscriber.uuid,
