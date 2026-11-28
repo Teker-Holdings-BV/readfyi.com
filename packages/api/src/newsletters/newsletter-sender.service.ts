@@ -203,7 +203,7 @@ export class NewsletterSenderService {
     const label = capitalizeFirst(enUS[newsletter]);
 
     return {
-      fromName: `FYI ${label}`,
+      fromName: `FYI: ${label}`,
       to: [{ email: recipient.email, name: '' }],
       subject,
       htmlBody: [
@@ -215,7 +215,7 @@ export class NewsletterSenderService {
         ),
         '</ol>',
         `<p>${SIGN_OFF}</p>`,
-        `<p style="font-size:12px;color:#666">You receive this because you subscribed to FYI ${label}. `,
+        `<p style="font-size:12px;color:#666">You receive this because you subscribed to FYI: ${label}. `,
         `<a href="${manageLink}" style="color:#666">Unsubscribe or manage your subscriptions</a>.</p>`,
       ].join(''),
       plainTextContent: [
@@ -226,7 +226,7 @@ export class NewsletterSenderService {
         SIGN_OFF,
         '',
         '--',
-        `You receive this because you subscribed to FYI ${label}.`,
+        `You receive this because you subscribed to FYI: ${label}.`,
         `Unsubscribe or manage your subscriptions: ${manageLink}`,
         '',
       ].join('\n'),

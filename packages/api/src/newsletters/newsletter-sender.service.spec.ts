@@ -112,10 +112,10 @@ describe('NewsletterSenderService', () => {
       NewsletterEnum.Marketer,
     ]);
     expect(sentEmails().map((e) => [e.fromName, e.to[0].email])).toEqual([
-      ['FYI AI', 'one@example.com'],
-      ['FYI Founder', 'three@example.com'],
-      ['FYI Marketer', 'one@example.com'],
-      ['FYI Marketer', 'two@example.com'],
+      ['FYI: AI', 'one@example.com'],
+      ['FYI: Founder', 'three@example.com'],
+      ['FYI: Marketer', 'one@example.com'],
+      ['FYI: Marketer', 'two@example.com'],
     ]);
     expect(summaries).toEqual([
       { newsletter: 'ai', recipients: 1, sent: 1, failed: 0, stopped: false },
@@ -177,7 +177,7 @@ describe('NewsletterSenderService', () => {
 
     expect(pickForNewsletter).toHaveBeenCalledTimes(3);
     const [first, second] = sentEmails().filter(
-      (e) => e.fromName === 'FYI Marketer',
+      (e) => e.fromName === 'FYI: Marketer',
     );
     expect(first.htmlBody.split('<p style')[0]).toBe(
       second.htmlBody.split('<p style')[0],
@@ -219,9 +219,9 @@ describe('NewsletterSenderService', () => {
     await service.sendNewsletters();
 
     expect(sentEmails().map((e) => e.fromName)).toEqual([
-      'FYI Founder',
-      'FYI Marketer',
-      'FYI Marketer',
+      'FYI: Founder',
+      'FYI: Marketer',
+      'FYI: Marketer',
     ]);
   });
 
